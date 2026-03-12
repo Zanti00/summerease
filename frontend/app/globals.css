@@ -1,0 +1,65 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-lighter-background: var(--lighter-background);
+  --color-secondary-background: var(--secondary-background);
+  --color-third-background: var(--third-background);
+  --color-sidebar: var(--sidebar);
+  --color-primary-text: var(--primary-text);
+  --color-secondary-text: var(--secondary-text);
+  --color-third-text: var(--third-text);
+  --color-disabled-muted: var(--disabled-muted);
+  --color-primary-button: var(--primary-button);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --lighter-background: #28270f;
+    --secondary-background: #191d1c;
+    --third-background: #1e293b;
+    --sidebar: #141414;
+    --primary-text: #f8f8f8;
+    --secondary-text: #94a3b8;
+    --third-text: #6a7282;
+    --disabled-muted: #475569;
+    --primary-button: #ffea00;
+  }
+}
+
+:root {
+  --background: #23220f;
+  --lighter-background: #28270f;
+  --secondary-background: #191d1c;
+  --third-background: #1e293b;
+  --sidebar: #141414;
+  --primary-text: #f8f8f8;
+  --secondary-text: #94a3b8;
+  --third-text: #6a7282;
+  --disabled-muted: #475569;
+  --primary-button: #ffea00;
+}
+
+.dark {
+  --background: #23220f;
+  --lighter-background: #28270f;
+  --secondary-background: #191d1c;
+  --third-background: #1e293b;
+  --sidebar: #141414;
+  --primary-text: #f8f8f8;
+  --secondary-text: #94a3b8;
+  --third-text: #6a7282;
+  --disabled-muted: #475569;
+  --primary-button: #ffea00;
+}
+
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--secondary-background);
+  }
+}
