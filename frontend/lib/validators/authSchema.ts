@@ -14,14 +14,14 @@ const passwordSchema = z
   );
 
 // Reusable email rules shared between loginSchema and registerSchema
-const emailSchema = z
+export const emailSchema = z
   .string()
   .trim()
   .email("Invalid email format")
   .max(254, "Email must be at most 254 characters");
 
 export const loginSchema = z.object({
-  email: z.string().email(),
+  email: emailSchema,
   password: z.string().min(1),
 });
 

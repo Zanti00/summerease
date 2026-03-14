@@ -6,10 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldLabel } from "@/components/ui/field";
-import { useMemo, useState, useEffect, useActionState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { loginSchema, registerSchema } from "@/lib/validators/authSchema";
-import { register } from "@/lib/validators/authSchemaHelpers";
+import {
+  emailSchema,
+  loginSchema,
+  registerSchema,
+} from "@/lib/validators/authSchema";
 
 // Errors now hold arrays so we can surface multiple messages per field
 // (zodFieldErrors from flatten() already return string[]).
@@ -17,6 +20,9 @@ type LoginErrors = Partial<Record<"email" | "password", string[]>>;
 type RegisterErrors = Partial<
   Record<"email" | "username" | "password" | "confirmPassword", string[]>
 >;
+type ForgotPasswordErrors = Partial<Record<"email", string[]>>;
+
+type AuthMode = "signin" | "signup" | "forgot";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
@@ -27,19 +33,16 @@ export default function AuthPage() {
 
   const [loginErrors, setLoginErrors] = useState<LoginErrors>({});
   const [registerErrors, setRegisterErrors] = useState<RegisterErrors>({});
+  const [forgotErrors, setForgotErrors] = useState<ForgotPasswordErrors>({});
 
   const searchParams = useSearchParams();
   const router = useRouter();
-  const initialMode =
-    searchParams?.get("mode") === "signup" ? "signup" : "signin";
-  const [mode, setMode] = useState<"signin" | "signup">(initialMode);
-
-  // keep state in sync if query changes (e.g. user manually edits URL)
-  useEffect(() => {
-    const m = searchParams?.get("mode");
-    if (m === "signup" && mode !== "signup") setMode("signup");
-    if (m === "signin" && mode !== "signin") setMode("signin");
-  }, [searchParams]);
+  const mode: AuthMode =
+    searchParams?.get("mode") === "signup"
+      ? "signup"
+      : searchParams?.get("mode") === "forgot"
+        ? "forgot"
+        : "signin";
 
   const waves = useMemo(
     () => ({
@@ -114,6 +117,33 @@ export default function AuthPage() {
     console.log(data);
   }
 
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
+
+    const result = emailSchema.safeParse(email);
+    if (!result.success) {
+      const firstIssue = result.error.issues?.[0];
+      setForgotErrors({
+        email: [firstIssue?.message ?? "Invalid email"],
+      });
+      return;
+    }
+
+    setForgotErrors({});
+
+    const res = await fetch("http://localhost:8000/auth/forgot-password", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email: result.data }),
+    });
+
+    const data = await res.json();
+
+    console.log(data);
+  }
+
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
 
@@ -141,6 +171,7 @@ export default function AuthPage() {
 
     setRegisterErrors({});
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { confirmPassword: _, ...payload } = result.data;
 
     const res = await fetch("http://localhost:8000/auth/register", {
@@ -148,7 +179,7 @@ export default function AuthPage() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(result.data),
+      body: JSON.stringify(payload),
     });
 
     const data = await res.json();
@@ -196,10 +227,8 @@ export default function AuthPage() {
                         ></Input>
                         {Array.isArray(loginErrors.email) &&
                           loginErrors.email.map((msg, idx) => (
-                            <ul>
-                              <li key={idx} className="text-xs text-red-500">
-                                {msg}
-                              </li>
+                            <ul key={idx}>
+                              <li className="text-xs text-red-500">{msg}</li>
                             </ul>
                           ))}
                         <FieldLabel className="text-xs">Password</FieldLabel>
@@ -213,10 +242,8 @@ export default function AuthPage() {
                         ></Input>
                         {Array.isArray(loginErrors.password) &&
                           loginErrors.password.map((msg, idx) => (
-                            <ul className="list-disc list-inside">
-                              <li key={idx} className="text-xs text-red-500">
-                                {msg}
-                              </li>
+                            <ul key={idx} className="list-disc list-inside">
+                              <li className="text-xs text-red-500">{msg}</li>
                             </ul>
                           ))}
                         <div className="flex items-center gap-2">
@@ -229,7 +256,15 @@ export default function AuthPage() {
                           </FieldLabel>
                         </div>
                       </Field>
-                      <div className="flex place-content-end text-primary-button">
+                      <div
+                        className="flex place-content-end text-primary-button cursor-pointer"
+                        onClick={() => {
+                          router.replace(`/auth?mode=forgot`);
+                          setPassword("");
+                          setLoginErrors({});
+                          setForgotErrors({});
+                        }}
+                      >
                         Forgot password?
                       </div>
                       <Button className="w-full">Log In</Button>
@@ -252,10 +287,7 @@ export default function AuthPage() {
                       <span
                         className="text-primary-button cursor-pointer"
                         onClick={() => {
-                          const newMode =
-                            mode === "signin" ? "signup" : "signin";
-                          setMode(newMode);
-                          router.replace(`/auth?mode=${newMode}`);
+                          router.replace(`/auth?mode=signup`);
                           setEmail("");
                           setPassword("");
                           setRegisterErrors({});
@@ -265,7 +297,7 @@ export default function AuthPage() {
                       </span>
                     </div>
                   </div>
-                ) : (
+                ) : mode === "signup" ? (
                   <div className="flex flex-col gap-4 text-primary-text">
                     <div className="flex flex-col items-center gap-2">
                       <div className="flex text-lg font-semibold">Welcome</div>
@@ -329,11 +361,8 @@ export default function AuthPage() {
                             />
                             {Array.isArray(registerErrors.password) &&
                               registerErrors.password.map((msg, idx) => (
-                                <ul className="list-disc list-inside">
-                                  <li
-                                    key={idx}
-                                    className="text-xs text-red-500"
-                                  >
+                                <ul key={idx} className="list-disc list-inside">
+                                  <li className="text-xs text-red-500">
                                     {msg}
                                   </li>
                                 </ul>
@@ -378,8 +407,11 @@ export default function AuthPage() {
                         <Button
                           type={signUpStep === 1 ? "button" : "submit"}
                           className="flex-1"
-                          onClick={() => {
-                            if (signUpStep === 1) setSignUpStep(2);
+                          onClick={(e) => {
+                            if (signUpStep === 1) {
+                              e.preventDefault();
+                              handleNextStep();
+                            }
                           }}
                         >
                           {signUpStep === 1 ? "Next" : "Sign up"}
@@ -401,12 +433,66 @@ export default function AuthPage() {
                       <span
                         className="text-primary-button cursor-pointer"
                         onClick={() => {
-                          setMode(mode === "signup" ? "signin" : "signup");
+                          router.replace(`/auth?mode=signin`);
                           setEmail("");
                           setUsername("");
                           setPassword("");
                           setConfirmPassword("");
                           setRegisterErrors({}); // clear validation on switch
+                        }}
+                      >
+                        Sign in
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4 text-primary-text">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="flex text-lg font-semibold">
+                        Reset Password
+                      </div>
+                      <div className="flex text-secondary-text">
+                        Enter your email to receive reset instructions
+                      </div>
+                    </div>
+
+                    <form
+                      onSubmit={handleForgotPassword}
+                      className="flex flex-col gap-4"
+                    >
+                      <Field>
+                        <FieldLabel className="text-xs">
+                          Email Address
+                        </FieldLabel>
+                        <Input
+                          className="border-none bg-third-background"
+                          placeholder="Enter email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                        />
+                        {Array.isArray(forgotErrors.email) &&
+                          forgotErrors.email.map((msg, idx) => (
+                            <p key={idx} className="text-xs text-red-500">
+                              {msg}
+                            </p>
+                          ))}
+                      </Field>
+                      <Button className="w-full">Send reset link</Button>
+                    </form>
+
+                    <div className="flex justify-center gap-1">
+                      <span className="text-secondary-text">
+                        Remembered your password?
+                      </span>
+                      <span
+                        className="text-primary-button cursor-pointer"
+                        onClick={() => {
+                          router.replace(`/auth?mode=signin`);
+                          setPassword("");
+                          setLoginErrors({});
+                          setForgotErrors({});
                         }}
                       >
                         Sign in
