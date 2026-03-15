@@ -13,6 +13,8 @@ import {
   loginSchema,
   registerSchema,
 } from "@/lib/validators/authSchema";
+import { loginUser, registerUser } from "@/lib/api/auth";
+import Link from "next/link";
 
 // Errors now hold arrays so we can surface multiple messages per field
 // (zodFieldErrors from flatten() already return string[]).
@@ -104,17 +106,25 @@ export default function AuthPage() {
 
     setLoginErrors({});
 
-    const res = await fetch("http://localhost:8000/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(result.data),
-    });
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    const data = await res.json();
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        const message = body?.error ?? "Login failed";
+        setLoginErrors({ password: [message] });
+        return;
+      }
 
-    console.log(data);
+      router.push("/documents");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Login failed";
+      setLoginErrors({ password: [message] });
+    }
   }
 
   async function handleForgotPassword(e: React.FormEvent) {
@@ -131,7 +141,9 @@ export default function AuthPage() {
 
     setForgotErrors({});
 
-    const res = await fetch("http://localhost:8000/auth/forgot-password", {
+    const apiBase =
+      process.env.NEXT_PUBLIC_FASTAPI_URL ?? "http://localhost:8000";
+    const res = await fetch(`${apiBase}/auth/forgot-password`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -171,20 +183,19 @@ export default function AuthPage() {
 
     setRegisterErrors({});
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { confirmPassword: _, ...payload } = result.data;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { confirmPassword: _, ...payload } = result.data;
+      const user = await registerUser(payload);
+      console.log("Registered user:", user);
 
-    const res = await fetch("http://localhost:8000/auth/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json();
-
-    console.log(data);
+      // After successful registration, send users to sign in.
+      router.push("/auth?mode=signin");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Registration failed";
+      setRegisterErrors({ email: [message] });
+    }
   }
 
   return (
@@ -267,7 +278,9 @@ export default function AuthPage() {
                       >
                         Forgot password?
                       </div>
-                      <Button className="w-full">Log In</Button>
+                      <Button type="submit" className="w-full">
+                        Log In
+                      </Button>
                     </form>
 
                     {/* FORM END */}
