@@ -1,0 +1,10 @@
+{
+  "name": "summerease",
+  "private": true,
+  "workspaces": ["frontend"],
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:services": "pnpm --filter services dev"
+  }
+}
