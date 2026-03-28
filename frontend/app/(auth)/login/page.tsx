@@ -6,12 +6,14 @@ import { FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import Link from "next/link";
+import { ROUTES } from "@/app/constants/routes";
 export default function LoginPage() {
   return (
     <div className="min-h-screen overflow-auto">
       <LightWavesBackground>
         <div className="min-h-screen flex flex-col items-center justify-center">
-          <main className="w-full max-w-md flex-1 flex items-center justify-center">
+          <main className="w-full max-w-md flex-1 flex items-center justify-center px-5">
             <Card className="p-6 mx-auto w-full max-w-md shadow-2xl">
               <Field>
                 <FieldLabel>Email address</FieldLabel>
@@ -30,7 +32,9 @@ export default function LoginPage() {
                 <Label htmlFor="remember-me-checkbox">Remember me</Label>
               </Field>
               <div className="flex justify-end text-primary">
-                <p>Forgot password?</p>
+                <Link href={ROUTES.auth.forgotPassword}>
+                  <p>Forgot password?</p>
+                </Link>
               </div>
               <Button>Log In</Button>
               <div className="flex items-center gap-3">
@@ -43,7 +47,9 @@ export default function LoginPage() {
               <Button className={"bg-border text-white"}>Google</Button>
               <div className="flex gap-1 justify-center">
                 <p>Don&apos;t have an account?</p>
-                <p className="text-primary">Sign up</p>
+                <Link href={ROUTES.auth.register}>
+                  <span className="text-primary">Sign up</span>
+                </Link>
               </div>
             </Card>
           </main>

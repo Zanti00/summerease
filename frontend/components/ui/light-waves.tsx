@@ -37,7 +37,7 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
 export function LightWavesBackground({
   className,
   children,
-  colors = ["#ffdf20", "#efb100", "#d08700", "#a65f00", "#894b00"],
+  colors = ["#ffea00", "#fbff41", "#fbffa7"],
   speed = 1,
   intensity = 0.6,
 }: LightWavesBackgroundProps) {
