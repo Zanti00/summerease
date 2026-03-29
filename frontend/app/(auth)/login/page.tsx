@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
@@ -8,63 +10,68 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { ROUTES } from "@/app/constants/routes";
+import AuthLayout from "../layout";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("verified") === "true") {
+      toast.success("Email verified. You may now login");
+    }
+  }, [searchParams]);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault;
+    console.log("test");
+  }
+
   return (
-    <div className="min-h-screen overflow-auto">
-      <LightWavesBackground>
-        <div className="min-h-screen flex flex-col items-center justify-center">
-          <main className="w-full max-w-md flex-1 flex items-center justify-center px-5">
-            <Card className="p-6 mx-auto w-full max-w-md shadow-2xl">
-              <Field>
-                <FieldLabel>Email address</FieldLabel>
-                <Input type="text" placeholder="Enter your email"></Input>
-                <FieldLabel>Password</FieldLabel>
-                <Input
-                  type="password"
-                  placeholder="Enter your password"
-                ></Input>
-              </Field>
-              <Field orientation={"horizontal"}>
-                <Checkbox
-                  id="remember-me-checkbox"
-                  name="remember-me-checkbox"
-                ></Checkbox>
-                <Label htmlFor="remember-me-checkbox">Remember me</Label>
-              </Field>
-              <div className="flex justify-end text-primary">
-                <Link href={ROUTES.auth.forgotPassword}>
-                  <p>Forgot password?</p>
-                </Link>
-              </div>
-              <Button>Log In</Button>
-              <div className="flex items-center gap-3">
-                <hr className="flex-1 border-t border-ring" />
-                <span className="text-xs uppercase text-ring">
-                  or continue with
-                </span>
-                <hr className="flex-1 border-t border-ring" />
-              </div>
-              <Button className={"bg-border text-white"}>Google</Button>
-              <div className="flex gap-1 justify-center">
-                <p>Don&apos;t have an account?</p>
-                <Link href={ROUTES.auth.register}>
-                  <span className="text-primary">Sign up</span>
-                </Link>
-              </div>
-            </Card>
-          </main>
-          <footer className="w-full py-3 text-center text-sm text-ring">
-            <span>
-              {" "}
-              © {new Date().getFullYear()} SummerEase. All rights reserved.
-            </span>
-            <div className="flex gap-2 justify-center">
-              <span>Terms of Services</span>
-              <span>Privacy Policy</span>
-            </div>
-          </footer>
+    <AuthLayout>
+      <Card className="p-6 mx-auto w-full max-w-md shadow-2xl">
+        <form className="flex flex-col gap-2" onSubmit={handleLogin}>
+          <Field>
+            <FieldLabel>Email address</FieldLabel>
+            <Input required type="email" placeholder="Enter your email"></Input>
+            <FieldLabel>Password</FieldLabel>
+            <Input
+              required
+              type="password"
+              placeholder="Enter your password"
+            ></Input>
+          </Field>
+          <Field orientation={"horizontal"}>
+            <Checkbox
+              id="remember-me-checkbox"
+              name="remember-me-checkbox"
+            ></Checkbox>
+            <Label htmlFor="remember-me-checkbox">Remember me</Label>
+          </Field>
+          <div className="flex justify-end text-primary">
+            <Link href={ROUTES.auth.forgotPassword}>
+              <p>Forgot password?</p>
+            </Link>
+          </div>
+          <Button className="w-full" type="submit">
+            Log In
+          </Button>
+        </form>
+        <div className="flex items-center gap-3">
+          <hr className="flex-1 border-t border-ring" />
+          <span className="text-xs uppercase text-ring">or continue with</span>
+          <hr className="flex-1 border-t border-ring" />
         </div>
-      </LightWavesBackground>
-    </div>
+        <Button className={"bg-border text-white"}>Google</Button>
+        <div className="flex gap-1 justify-center">
+          <p>Don&apos;t have an account?</p>
+          <Link href={ROUTES.auth.register}>
+            <span className="text-primary">Sign up</span>
+          </Link>
+        </div>
+      </Card>
+    </AuthLayout>
   );
 }

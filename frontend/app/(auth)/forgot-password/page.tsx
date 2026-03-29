@@ -23,7 +23,7 @@ export default function ForgotPassword() {
             <Card className="p-6 mx-auto w-full max-w-md shadow-2xl">
               <Field>
                 <FieldLabel>Email address</FieldLabel>
-                <Input type="text" placeholder="Enter your email"></Input>
+                <Input type="email" placeholder="Enter your email"></Input>
               </Field>
               <Button>Send email</Button>
             </Card>

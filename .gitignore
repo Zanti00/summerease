@@ -50,3 +50,6 @@ env/
 
 # Alembic
 services/alembic/versions/*.pyc
+
+# Agents
+.agents/
