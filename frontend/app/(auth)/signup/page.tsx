@@ -15,6 +15,8 @@ import AuthLayout from "../layout";
 import { useSignupForm } from "@/hooks/useSignupForm";
 import { signupPayloadSchema } from "@/lib/schemas/auth.schema";
 import { registerUser } from "@/lib/actions/signupAction";
+import { FormError } from "@/components/ui/form-error";
+
 
 export default function SignUpPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -175,14 +177,7 @@ export default function SignUpPage() {
               </div>
             )}
           </Field>
-          {serverError && (
-            <p
-              role="alert"
-              className="text-sm text-destructive mt-4 text-center"
-            >
-              {serverError}
-            </p>
-          )}
+          {serverError && <FormError message={serverError} />}
         </form>
 
         <div className="flex items-center gap-3">

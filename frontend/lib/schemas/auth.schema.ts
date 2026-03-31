@@ -52,3 +52,11 @@ export const signupPayloadSchema = signupSchema.transform(
   ({ confirmPassword: _, ...rest }) => rest,
 );
 export type SignupPayload = z.infer<typeof signupPayloadSchema>;
+
+export const loginSchema = z.object({
+  email: emailField,
+  password: z.string().min(1, "Password is required"),
+});
+
+export type LoginFormData = z.infer<typeof loginSchema>;
+
