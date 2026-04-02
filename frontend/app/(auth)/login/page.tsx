@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
-import { LightWavesBackground } from "@/components/ui/light-waves";
 import { FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
@@ -20,6 +19,19 @@ import { useRouter } from "next/navigation";
 export default function LoginPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    if (errorParam === "session_expired") {
+      toast.error("Session expired. Log in again");
+
+      // Clean up URL to avoid showing toast on refresh
+      const url = new URL(window.location.href);
+      url.searchParams.delete("error");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const getCookie = (name: string) => {
@@ -39,7 +51,7 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting, isValid },
+    formState: { errors, isSubmitting },
     setError,
   } = useLoginForm();
 
