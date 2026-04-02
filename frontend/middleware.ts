@@ -3,10 +3,18 @@ import type { NextRequest } from "next/server";
 import { jwtVerify, createRemoteJWKSet } from "jose";
 
 const protectedRoutes = ["/documents"];
-const authRoutes = ["/login", "/register", "/forgot-password", "/reset-password"];
+const authRoutes = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+];
 
+// Initialize JWKS with the public auth API URL or a fallback
 const JWKS = createRemoteJWKSet(
-  new URL(`${process.env.API_URL}/auth/.well-known/jwks.json`)
+  new URL(
+    `${process.env.NEXT_PUBLIC_AUTH_API || "http://127.0.0.1:3001"}/auth/.well-known/jwks.json`,
+  ),
 );
 
 async function verifyToken(token: string) {
@@ -20,6 +28,20 @@ async function verifyToken(token: string) {
 }
 
 export async function middleware(request: NextRequest) {
+  const url = request.nextUrl.clone();
+  const host = request.headers.get("host") || "";
+
+  // Enforce 127.0.0.1 over localhost to avoid session/origin issues
+  // ONLY redirect if the 'host' header explicitly contains 'localhost'
+  if (host.includes("localhost")) {
+    url.hostname = "127.0.0.1";
+    // We must ensure the port is preserved if specified in the Host header
+    if (host.includes(":")) {
+      url.port = host.split(":")[1];
+    }
+    return NextResponse.redirect(url);
+  }
+
   const accessToken = request.cookies.get("access_token")?.value;
   const refreshToken = request.cookies.get("refresh_token")?.value;
   const path = request.nextUrl.pathname;
@@ -41,12 +63,15 @@ export async function middleware(request: NextRequest) {
     if (error === "ERR_JWT_EXPIRED") {
       if (refreshToken) {
         try {
-          const refreshRes = await fetch(`${process.env.API_URL}/auth/refresh`, {
-            method: "POST",
-            headers: {
-              "Cookie": `refresh_token=${refreshToken}`,
+          const refreshRes = await fetch(
+            `${process.env.NEXT_PUBLIC_AUTH_API || "http://127.0.0.1:3001"}/auth/refresh`,
+            {
+              method: "POST",
+              headers: {
+                Cookie: `refresh_token=${refreshToken}`,
+              },
             },
-          });
+          );
 
           if (refreshRes.ok) {
             const result = await refreshRes.json();
@@ -67,9 +92,17 @@ export async function middleware(request: NextRequest) {
                 path: "/",
               };
 
-              response.cookies.set("access_token", newAccessToken, cookieOptions);
+              response.cookies.set(
+                "access_token",
+                newAccessToken,
+                cookieOptions,
+              );
               if (newRefreshToken) {
-                response.cookies.set("refresh_token", newRefreshToken, cookieOptions);
+                response.cookies.set(
+                  "refresh_token",
+                  newRefreshToken,
+                  cookieOptions,
+                );
               }
               return response;
             }
@@ -83,21 +116,24 @@ export async function middleware(request: NextRequest) {
     if (error === "ERR_JWT_EXPIRED") {
       loginUrl.searchParams.set("error", "session_expired");
     }
-    
+
     const response = NextResponse.redirect(loginUrl);
     response.cookies.delete("access_token");
     response.cookies.delete("refresh_token");
     response.cookies.delete("verified_toast");
-    
+
     // Clear storage to prevent "ghost" data
     response.headers.set("Clear-Site-Data", '"cache", "cookies", "storage"');
 
     // Attempt to notify backend (best effort revocation)
     try {
-      fetch(`${process.env.API_URL}/auth/logout`, {
-        method: "POST",
-        headers: { "Cookie": `access_token=${accessToken}` },
-      });
+      fetch(
+        `${process.env.NEXT_PUBLIC_AUTH_API || "http://127.0.0.1:3001"}/auth/logout`,
+        {
+          method: "POST",
+          headers: { Cookie: `access_token=${accessToken}` },
+        },
+      );
     } catch {}
 
     return response;

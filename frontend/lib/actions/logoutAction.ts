@@ -9,22 +9,29 @@ export async function logoutUser() {
     const allCookies = cookieStore.toString();
 
     if (!token) {
-      console.warn("No access_token found in cookies, skipping backend logout.");
+      console.warn(
+        "No access_token found in cookies, skipping backend logout.",
+      );
       return { success: true }; // Consider it a success if we're already logged out
     }
 
-    if (!process.env.API_URL) {
-      throw new Error("API_URL is not defined in environment variables");
+    if (!process.env.NEXT_PUBLIC_AUTH_API) {
+      throw new Error(
+        "NEXT_PUBLIC_AUTH_API is not defined in environment variables",
+      );
     }
 
-    const response = await fetch(`${process.env.API_URL}/auth/logout`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Cookie: allCookies, // Manually forward cookies for server-side fetch
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_AUTH_API}/auth/logout`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Cookie: allCookies, // Manually forward cookies for server-side fetch
+        },
+        credentials: "include",
       },
-      credentials: "include",
-    });
+    );
 
     const result = await response.json();
 
@@ -40,6 +47,9 @@ export async function logoutUser() {
     return result;
   } catch (error) {
     console.error("Logout error:", error);
-    return { success: false, error: { message: "Network error during logout" } };
+    return {
+      success: false,
+      error: { message: "Network error during logout" },
+    };
   }
 }
