@@ -3,6 +3,7 @@ export const ROUTES = {
     login: "login",
     register: "signup",
     forgotPassword: "forgot-password",
+    resetPassword: "reset-password",
   },
   documents: {
     root: "/documents",
@@ -11,6 +12,11 @@ export const ROUTES = {
 
 export const PROTECTED_ROUTES: string[] = [];
 
-export const AUTH_ROUTES: string[] = [ROUTES.auth.login, ROUTES.auth.register];
+export const AUTH_ROUTES: string[] = [
+  ROUTES.auth.login,
+  ROUTES.auth.register,
+  ROUTES.auth.forgotPassword,
+  ROUTES.auth.resetPassword,
+];
 
 export const DEFAULT_LOGIN_REDIRECT = ROUTES.documents.root;

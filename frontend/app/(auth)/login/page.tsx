@@ -6,8 +6,6 @@ import { Field } from "@/components/ui/field";
 import { LightWavesBackground } from "@/components/ui/light-waves";
 import { FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { ROUTES } from "@/app/constants/routes";
 import AuthLayout from "../layout";
@@ -104,13 +102,7 @@ export default function LoginPage() {
               </p>
             )}
           </Field>
-          <Field orientation={"horizontal"}>
-            <Checkbox
-              id="remember-me-checkbox"
-              name="remember-me-checkbox"
-            ></Checkbox>
-            <Label htmlFor="remember-me-checkbox">Remember me</Label>
-          </Field>
+
           <div className="flex justify-end text-primary">
             <Link href={ROUTES.auth.forgotPassword}>
               <p>Forgot password?</p>
