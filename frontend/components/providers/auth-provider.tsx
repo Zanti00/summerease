@@ -6,6 +6,7 @@ interface User {
   id: string;
   email: string;
   username?: string;
+  mfa_enabled?: boolean;
 }
 
 interface AuthContextType {

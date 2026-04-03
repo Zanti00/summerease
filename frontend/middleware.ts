@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify, createRemoteJWKSet } from "jose";
 
-const protectedRoutes = ["/documents"];
+const protectedRoutes = ["/documents", "/settings/account"];
 const authRoutes = [
   "/login",
   "/register",

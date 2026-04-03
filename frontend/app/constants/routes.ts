@@ -8,9 +8,17 @@ export const ROUTES = {
   documents: {
     root: "/documents",
   },
+  settings: {
+    account: "/settings/account",
+    security: "/settings/security",
+  },
 } as const;
 
-export const PROTECTED_ROUTES: string[] = [];
+export const PROTECTED_ROUTES: string[] = [
+  ROUTES.documents.root,
+  ROUTES.settings.account,
+  ROUTES.settings.security,
+];
 
 export const AUTH_ROUTES: string[] = [
   ROUTES.auth.login,
