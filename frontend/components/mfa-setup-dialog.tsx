@@ -146,7 +146,10 @@ export function MFASetupDialog({
             <div className="flex items-center justify-between">
               {step > 1 && step !== 3 ? (
                 <button
-                  onClick={() => setStep(step - 1)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setStep(step - 1);
+                  }}
                   className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition-all"
                   title="Go back"
                 >
@@ -158,7 +161,10 @@ export function MFASetupDialog({
 
               {step !== 3 ? (
                 <button
-                  onClick={() => onOpenChange(false)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenChange(false);
+                  }}
                   className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition-all"
                   title="Close"
                 >
@@ -216,7 +222,10 @@ export function MFASetupDialog({
 
               <Button
                 disabled={!enrollData || isLoading}
-                onClick={() => setStep(2)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setStep(2);
+                }}
                 className="w-full h-12 rounded-full font-bold text-base bg-white text-black hover:bg-zinc-200"
               >
                 Next
@@ -251,7 +260,10 @@ export function MFASetupDialog({
 
               <Button
                 disabled={otp.some((d) => d === "") || isLoading}
-                onClick={handleVerify}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleVerify();
+                }}
                 className="w-full h-12 rounded-full font-bold text-base flex items-center justify-center gap-2"
               >
                 {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -295,7 +307,8 @@ export function MFASetupDialog({
 
               <Button
                 disabled={!isSecured}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   onComplete();
                   onOpenChange(false);
                 }}

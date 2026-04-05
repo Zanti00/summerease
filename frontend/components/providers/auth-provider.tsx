@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { getCurrentUser } from "@/lib/actions/authActions";
 
 interface User {
   id: string;
@@ -34,12 +35,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Initial check for session restore
-    const checkSession = async () => {
-      // In a real app, this would verify the cookie/token
-      setIsLoading(false);
+    const restoreSession = async () => {
+      try {
+        const result = await getCurrentUser();
+        if (result.success && result.data?.user) {
+          setAuth(result.data.user);
+        } else {
+          setIsLoading(false);
+        }
+      } catch {
+        setIsLoading(false);
+      }
     };
-    checkSession();
-  }, []);
+    restoreSession();
+  }, [setAuth]);
 
   return (
     <AuthContext.Provider

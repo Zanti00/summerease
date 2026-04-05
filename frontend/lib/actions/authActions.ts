@@ -29,3 +29,34 @@ export async function clearAuthCookies() {
   cookieStore.delete("refresh_token");
   return { success: true };
 }
+
+/**
+ * Server action to fetch the currently authenticated user's profile.
+ * Leverages the httpOnly access_token cookie for authentication.
+ */
+export async function getCurrentUser() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("access_token")?.value;
+
+  if (!token) {
+    return { success: false, error: { message: "No session found" } };
+  }
+
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API}/auth/me`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      // Note: In Next.js server actions, fetch doesn't automatically share cookies 
+      // with the backend unless we explicitly pass them or the backend is on the same domain.
+      // Since we are passing the token in the header, this satisfies the backend security.
+    });
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch user session:", error);
+    return { success: false, error: { message: "Internal server error" } };
+  }
+}

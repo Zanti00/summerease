@@ -25,12 +25,14 @@ import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { ROUTES } from "@/app/constants/routes";
 import { useHeader } from "@/lib/contexts/header-context";
+import { useAuth } from "@/components/providers/auth-provider";
 import { useEffect, useState } from "react";
 
 export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { sidebarItems } = useHeader();
+  const { user, isLoading, logout } = useAuth();
   const [hash, setHash] = useState(() =>
     typeof window !== "undefined" ? window.location.hash : "",
   );
@@ -47,6 +49,7 @@ export function AppSidebar() {
   const handleLogout = async () => {
     const result = await logoutUser();
     if (result.success) {
+      logout();
       router.push("/login");
     } else {
       console.error("Logout failed:", result.error?.message);
@@ -113,10 +116,10 @@ export function AppSidebar() {
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none text-left">
                   <span className="font-semibold text-sidebar-foreground line-clamp-1">
-                    User Profile
+                    {isLoading ? "Loading..." : user?.username || "Guest User"}
                   </span>
                   <span className="text-xs text-sidebar-foreground/70 line-clamp-1">
-                    user@example.com
+                    {isLoading ? "Please wait" : user?.email || "not logged in"}
                   </span>
                 </div>
                 <ChevronUp className="ml-auto" />

@@ -6,12 +6,7 @@ import {
   DialogOverlay,
   DialogPortal,
 } from "@/components/ui/dialog";
-import {
-  Settings,
-  Shield,
-  User,
-  X,
-} from "lucide-react";
+import { Settings, Shield, User, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
 import { ROUTES } from "@/app/constants/routes";
@@ -30,9 +25,11 @@ const SETTINGS_TABS = [
 export function SettingsDialog({
   children,
   isBlurred = false,
+  onOpenChange,
 }: {
   children: ReactNode;
   isBlurred?: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -45,7 +42,12 @@ export function SettingsDialog({
     SETTINGS_TABS.find((tab) => tab.url === pathname) || SETTINGS_TABS[0];
 
   return (
-    <Dialog open={true} onOpenChange={handleClose}>
+    <Dialog
+      open={true}
+      onOpenChange={(isOpen) => {
+        onOpenChange(isOpen);
+      }}
+    >
       <DialogPortal>
         <DialogOverlay className="bg-black/40 backdrop-blur-sm" />
         <DialogContent
@@ -58,7 +60,9 @@ export function SettingsDialog({
           <div className="w-[240px] bg-zinc-950 flex flex-col border-r border-zinc-800">
             <div className="p-4 flex items-center justify-between">
               <button
-                onClick={handleClose}
+                onClick={(e) => {
+                  onOpenChange(true);
+                }}
                 className="p-2 hover:bg-zinc-800 rounded-md transition-colors"
               >
                 <X className="h-5 w-5 text-zinc-400" />

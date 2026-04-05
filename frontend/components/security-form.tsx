@@ -12,12 +12,12 @@ export function SecurityForm({
 }: {
   onSetupOpenChange?: (open: boolean) => void;
 }) {
-  const { user, setAuth } = useAuth();
+  const { user, setAuth, isLoading } = useAuth();
   const [isSetupOpen, setIsSetupOpen] = useState(false);
   const [isDisableOpen, setIsDisableOpen] = useState(false);
 
-  // Synchronize internal state with user.mfa_enabled from context
-  const isMFAEnabled = user?.mfa_enabled ?? false;
+  // Read mfa_enabled from the authenticated user. If true, switch is on. If false or otherwise, it's off.
+  const isMFAEnabled = user?.mfa_enabled === true;
 
   const toggleSetup = (open: boolean) => {
     setIsSetupOpen(open);
@@ -71,6 +71,7 @@ export function SecurityForm({
             id="mfa-switch"
             checked={isMFAEnabled} 
             onCheckedChange={handleMFAToggle} 
+            disabled={isLoading}
           />
         </div>
       </div>

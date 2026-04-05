@@ -16,11 +16,13 @@ import { FormError } from "@/components/ui/form-error";
 import { loginUser } from "@/lib/actions/signinAction";
 import { useRouter } from "next/navigation";
 import { LoginFormData } from "@/lib/schemas/auth.schema";
+import { useAuth } from "@/components/providers/auth-provider";
 
 export default function LoginPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { setAuth } = useAuth();
 
   useEffect(() => {
     const errorParam = searchParams.get("error");
@@ -85,6 +87,12 @@ export default function LoginPage() {
         setServerError(result.error?.message ?? "Something went wrong.");
         return;
       }
+      
+      // Update client-side auth state
+      if (result.data?.user) {
+        setAuth(result.data.user);
+      }
+      
       router.push(ROUTES.documents.root);
     } catch (error: unknown) {
       const err = error as Error;
