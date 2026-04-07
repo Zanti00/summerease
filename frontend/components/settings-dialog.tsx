@@ -1,5 +1,6 @@
-import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -12,40 +13,54 @@ import { ReactNode } from "react";
 import { ROUTES } from "@/app/constants/routes";
 
 const SETTINGS_TABS = [
-  { id: "general", label: "General", icon: Settings, url: "#" },
+  { id: "account", label: "Account", icon: User, url: ROUTES.settings.account },
   {
     id: "security",
     label: "Security",
     icon: Shield,
     url: ROUTES.settings.security,
   },
-  { id: "account", label: "Account", icon: User, url: ROUTES.settings.account },
 ];
 
 export function SettingsDialog({
   children,
   isBlurred = false,
-  onOpenChange,
 }: {
   children: ReactNode;
   isBlurred?: boolean;
-  onOpenChange: (open: boolean) => void;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [hash, setHash] = useState(() =>
+    typeof window !== "undefined" ? window.location.hash : "",
+  );
+
+  useEffect(() => {
+    const handleSync = () => {
+      const currentHash = window.location.hash;
+      if (currentHash !== hash) setHash(currentHash);
+    };
+
+    window.addEventListener("hashchange", handleSync);
+    handleSync();
+
+    return () => window.removeEventListener("hashchange", handleSync);
+  }, [pathname, searchParams, hash]);
 
   const handleClose = () => {
-    router.back();
+    window.location.hash = "";
   };
 
   const activeTab =
-    SETTINGS_TABS.find((tab) => tab.url === pathname) || SETTINGS_TABS[0];
+    SETTINGS_TABS.find((tab) => hash.startsWith(tab.url)) || SETTINGS_TABS[0];
 
   return (
     <Dialog
       open={true}
       onOpenChange={(isOpen) => {
-        onOpenChange(isOpen);
+        if (!isOpen) {
+          handleClose();
+        }
       }}
     >
       <DialogPortal>
@@ -60,9 +75,7 @@ export function SettingsDialog({
           <div className="w-[240px] bg-zinc-950 flex flex-col border-r border-zinc-800">
             <div className="p-4 flex items-center justify-between">
               <button
-                onClick={(e) => {
-                  onOpenChange(true);
-                }}
+                onClick={handleClose}
                 className="p-2 hover:bg-zinc-800 rounded-md transition-colors"
               >
                 <X className="h-5 w-5 text-zinc-400" />
@@ -71,7 +84,7 @@ export function SettingsDialog({
             <div className="flex-1 overflow-y-auto px-2 py-2">
               <div className="space-y-1">
                 {SETTINGS_TABS.map((tab) => {
-                  const isActive = tab.url === pathname;
+                  const isActive = hash.startsWith(tab.url);
                   return (
                     <Link
                       key={tab.id}

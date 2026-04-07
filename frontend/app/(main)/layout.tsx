@@ -8,6 +8,7 @@ import {
 import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import { HeaderProvider, useHeader } from "@/lib/contexts/header-context";
+import { SettingsHashController } from "@/components/settings-hash-controller";
 
 function HeaderDisplay() {
   const { title, subtitle } = useHeader();
@@ -23,10 +24,8 @@ function HeaderDisplay() {
 
 export default function MainLayout({
   children,
-  modal,
 }: {
   children: React.ReactNode;
-  modal: React.ReactNode;
 }) {
   return (
     <HeaderProvider>
@@ -40,7 +39,7 @@ export default function MainLayout({
           </header>
           <div className="flex flex-1 flex-col gap-4 p-4 pt-2">
             {children}
-            {modal}
+            <SettingsHashController />
           </div>
         </SidebarInset>
       </SidebarProvider>
