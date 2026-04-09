@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { FormError } from "@/components/ui/form-error";
 import AuthLayout from "../../layout";
@@ -19,6 +19,8 @@ export default function MfaPage() {
   const router = useRouter();
   const { setAuth } = useAuth();
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [backupCode, setBackupCode] = useState("");
+  const [isBackupMode, setIsBackupMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -26,7 +28,8 @@ export default function MfaPage() {
   const mfaToken = searchParams.get("mfaToken");
 
   useEffect(() => {
-    if (!mfaToken) {
+    const isMfaInProgress = sessionStorage.getItem("mfa_in_progress");
+    if (!mfaToken || !isMfaInProgress) {
       router.push(ROUTES.auth.login);
     }
   }, [mfaToken, router]);
@@ -53,9 +56,16 @@ export default function MfaPage() {
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const code = otp.join("");
-    if (code.length < 6) {
+    
+    const code = isBackupMode ? backupCode : otp.join("");
+    
+    if (!isBackupMode && code.length < 6) {
       setError("Please enter a 6-digit code.");
+      return;
+    }
+
+    if (isBackupMode && !backupCode) {
+      setError("Please enter your backup code.");
       return;
     }
 
@@ -67,6 +77,7 @@ export default function MfaPage() {
 
       if (result.success) {
         toast.success("MFA Verified. Welcome back!");
+        sessionStorage.removeItem("mfa_in_progress");
         if (result.data?.user) {
           setAuth(result.data.user);
         }
@@ -87,7 +98,9 @@ export default function MfaPage() {
         <div className="space-y-2 text-center">
           <h1 className="text-2xl font-bold tracking-tight">Two-Factor Authentication</h1>
           <p className="text-sm text-muted-foreground">
-            Enter the security code from your authenticator app to continue.
+            {isBackupMode 
+              ? "Enter one of your recovery backup codes to continue." 
+              : "Enter the security code from your authenticator app to continue."}
           </p>
         </div>
 
@@ -96,32 +109,45 @@ export default function MfaPage() {
           
           <div className="w-full space-y-4">
             <p className="text-sm font-medium text-zinc-300 text-center">
-              Enter your 6-digit security code
+              {isBackupMode ? "Enter your backup code" : "Enter your 6-digit security code"}
             </p>
-            <div className="flex justify-between gap-2 px-2">
-              {otp.map((digit, i) => (
-                <Input
-                  key={i}
-                  ref={(el) => {
-                    inputRefs.current[i] = el;
-                  }}
-                  type="text"
-                  inputMode="numeric"
-                  value={digit}
-                  onChange={(e) => handleOtpChange(i, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(i, e)}
-                  disabled={isSubmitting}
-                  className="w-12 h-14 text-center text-xl font-bold bg-zinc-800 border-zinc-700 focus:ring-primary focus:border-primary transition-all disabled:opacity-50"
-                  autoFocus={i === 0}
-                />
-              ))}
-            </div>
+            
+            {isBackupMode ? (
+              <Input
+                type="text"
+                placeholder="Ex: ABCDE-FGHIJ"
+                value={backupCode}
+                onChange={(e) => setBackupCode(e.target.value)}
+                disabled={isSubmitting}
+                className="h-14 text-center text-xl font-mono tracking-widest bg-zinc-800 border-zinc-700 focus:ring-primary focus:border-primary transition-all disabled:opacity-50"
+                autoFocus
+              />
+            ) : (
+              <div className="flex justify-between gap-2 px-2">
+                {otp.map((digit, i) => (
+                  <Input
+                    key={i}
+                    ref={(el) => {
+                      inputRefs.current[i] = el;
+                    }}
+                    type="text"
+                    inputMode="numeric"
+                    value={digit}
+                    onChange={(e) => handleOtpChange(i, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(i, e)}
+                    disabled={isSubmitting}
+                    className="w-12 h-14 text-center text-xl font-bold bg-zinc-800 border-zinc-700 focus:ring-primary focus:border-primary transition-all disabled:opacity-50"
+                    autoFocus={i === 0}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           <Button 
             type="submit" 
             className="w-full h-12 rounded-full font-bold text-base flex items-center justify-center gap-2" 
-            disabled={isSubmitting || otp.some(d => d === "")}
+            disabled={isSubmitting || (isBackupMode ? !backupCode : otp.some(d => d === ""))}
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
             {isSubmitting ? "Verifying..." : "Verify Code"}
@@ -129,15 +155,32 @@ export default function MfaPage() {
         </form>
 
         <div className="text-center text-sm">
-          <p className="text-muted-foreground">
-            Lost access to your device?{" "}
-            <span 
-              className="text-primary cursor-pointer hover:underline font-medium" 
-              onClick={() => setError("Please use one of your recovery backup codes.")}
+          {isBackupMode ? (
+            <button 
+              type="button"
+              className="flex items-center justify-center gap-2 text-primary hover:underline font-medium mx-auto"
+              onClick={() => {
+                setIsBackupMode(false);
+                setError(null);
+              }}
             >
-              Use a backup code
-            </span>
-          </p>
+              <ArrowLeft className="h-4 w-4" />
+              Back to authenticator
+            </button>
+          ) : (
+            <p className="text-muted-foreground">
+              Lost access to your device?{" "}
+              <span 
+                className="text-primary cursor-pointer hover:underline font-medium" 
+                onClick={() => {
+                  setIsBackupMode(true);
+                  setError(null);
+                }}
+              >
+                Use a backup code
+              </span>
+            </p>
+          )}
         </div>
       </Card>
     </AuthLayout>

@@ -90,6 +90,7 @@ export default function LoginPage() {
 
       // 🛡️ HANDLE MFA REDIRECT
       if (result.data?.mfaRequired && result.data?.mfaToken) {
+        sessionStorage.setItem("mfa_in_progress", "true");
         router.push(`${ROUTES.auth.mfa}?mfaToken=${result.data.mfaToken}`);
         return;
       }

@@ -5,9 +5,10 @@ import { jwtVerify, createRemoteJWKSet } from "jose";
 const protectedRoutes = ["/documents", "/settings/account"];
 const authRoutes = [
   "/login",
-  "/register",
+  "/signup",
   "/forgot-password",
   "/reset-password",
+  "/login/mfa",
 ];
 
 // Initialize JWKS with the public auth API URL or a fallback
@@ -117,7 +118,12 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set("error", "session_expired");
     }
 
-    const response = NextResponse.redirect(loginUrl);
+    // If we're already on an auth route, just clear cookies and let them stay.
+    // Otherwise, redirect to login to secure the protected route.
+    const response = isAuthRoute
+      ? NextResponse.next()
+      : NextResponse.redirect(loginUrl);
+
     response.cookies.delete("access_token");
     response.cookies.delete("refresh_token");
     response.cookies.delete("verified_toast");
