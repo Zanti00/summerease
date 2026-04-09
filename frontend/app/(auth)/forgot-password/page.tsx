@@ -12,9 +12,11 @@ import { useForgotPasswordForm } from "@/hooks/useForgotPasswordForm";
 import { FormError } from "@/components/ui/form-error";
 import { forgotPasswordAction } from "@/lib/actions/forgotPasswordAction";
 import AuthLayout from "../layout";
+import { useRouter } from "next/navigation";
 
 export default function ForgotPasswordPage() {
   const [serverError, setServerError] = useState<string | null>(null);
+  const router = useRouter();
 
   const {
     register,
@@ -46,7 +48,7 @@ export default function ForgotPasswordPage() {
       }
       
       toast.success("Recovery email sent! Please check your inbox.");
-      reset();
+      router.push(`/${ROUTES.auth.login}`);
     } catch (error: any) {
       setServerError(error.message || "An error occurred.");
     }
