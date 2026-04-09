@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from typing import Optional
 from .schemas import (
-    LoginRequest, MFAVerifyRequest, MFAResendRequest,
+    LoginRequest, MFAVerifyRequest, MFAEnrollVerifyRequest, MFAResendRequest,
     SignupRequest, ForgotPasswordRequest, ResetPasswordRequest
 )
 from .nexusauth_client import get_nexusauth_client, NexusAuthClient
@@ -19,11 +19,6 @@ async def handle_nexusauth_error(e: httpx.HTTPStatusError):
         detail = {"message": str(e)}
     
     status_code = e.response.status_code
-    
-    # Custom mapping for MFA verify as requested: 
-    # Map 401/410/422 on MFA verify to HTTP 400
-    if status_code in [401, 410, 422]:
-        status_code = 400
         
     raise HTTPException(status_code=status_code, detail=detail)
 
@@ -43,11 +38,21 @@ async def verify_mfa(
     try:
         return await client.verify_mfa(payload, authorization)
     except httpx.HTTPStatusError as e:
-        # Special mapping for MFA verify
         detail = e.response.json() if e.response.content else {"message": str(e)}
-        if e.response.status_code in [401, 410, 422]:
-            raise HTTPException(status_code=400, detail=detail)
         raise HTTPException(status_code=e.response.status_code, detail=detail)
+
+@router.post("/mfa/enroll/verify")
+async def verify_enroll_mfa(
+    payload: MFAEnrollVerifyRequest,
+    authorization: Optional[str] = Header(None),
+    client: NexusAuthClient = Depends(get_nexusauth_client)
+):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Missing Authorization header")
+    try:
+        return await client.verify_enroll_mfa(payload, authorization)
+    except httpx.HTTPStatusError as e:
+        await handle_nexusauth_error(e)
 
 @router.post("/mfa/resend")
 async def resend_otp(payload: MFAResendRequest, client: NexusAuthClient = Depends(get_nexusauth_client)):

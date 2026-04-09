@@ -6,8 +6,8 @@ class LoginRequest(BaseModel):
     password: str
 
 class MFAChallengeResponse(BaseModel):
-    mfa_required: bool = True
-    mfa_token: str
+    mfaRequired: bool = True
+    mfaToken: str
     method: Literal["email_otp", "sms_otp", "totp"]
     destination_hint: Optional[str] = None
     
@@ -30,10 +30,13 @@ class LoginResponse(BaseModel):
 
 class MFAVerifyRequest(BaseModel):
     token: str
-    mfa_token: Optional[str] = None
+    mfaToken: Optional[str] = None
+
+class MFAEnrollVerifyRequest(BaseModel):
+    token: str
 
 class MFAResendRequest(BaseModel):
-    mfa_token: str
+    mfaToken: str
 
 class SignupRequest(BaseModel):
     username: str

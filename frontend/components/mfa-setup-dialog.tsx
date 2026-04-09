@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { QrCode, Copy, Download, ChevronLeft, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { enrollMfa, verifyMfa } from "@/lib/actions/mfaActions";
+import { enrollMfa, verifyEnrollMfa } from "@/lib/actions/mfaActions";
 
 interface MFASetupDialogProps {
   open: boolean;
@@ -90,7 +90,7 @@ export function MFASetupDialog({
     setIsLoading(true);
     const token = otp.join("");
     try {
-      const result = await verifyMfa(token);
+      const result = await verifyEnrollMfa(token);
       if (result.success) {
         setRecoveryCodes(result.data.backupCodes || []);
         setStep(3);

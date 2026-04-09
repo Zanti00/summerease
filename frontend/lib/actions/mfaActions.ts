@@ -37,7 +37,43 @@ export async function enrollMfa() {
 }
 
 /**
- * Verifies the MFA token to finalize enablement or act as a login challenge.
+ * Verifies the MFA token to finalize enrollment.
+ * Uses the dedicated /enroll/verify endpoint.
+ */
+export async function verifyEnrollMfa(tokenValue: string) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("access_token")?.value;
+
+    if (!token) {
+      return { success: false, error: { message: "Authentication required" } };
+    }
+
+    const response = await fetch(
+      `${NEXT_PUBLIC_API_URL}/auth/mfa/enroll/verify`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ token: tokenValue }),
+      },
+    );
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("MFA Enrollment Verification Error:", error);
+    return {
+      success: false,
+      error: { message: "Network error during enrollment verification" },
+    };
+  }
+}
+
+/**
+ * Verifies the MFA token to act as a login challenge.
  */
 export async function verifyMfa(tokenValue: string) {
   try {

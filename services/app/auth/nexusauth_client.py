@@ -2,7 +2,7 @@ import httpx
 from functools import lru_cache
 from ..core.config import get_settings
 from .schemas import (
-    LoginRequest, MFAVerifyRequest, MFAResendRequest, 
+    LoginRequest, MFAVerifyRequest, MFAEnrollVerifyRequest, MFAResendRequest, 
     SignupRequest, ForgotPasswordRequest, ResetPasswordRequest
 )
 
@@ -28,6 +28,15 @@ class NexusAuthClient:
         if auth_header:
             headers["Authorization"] = auth_header
         response = await self.client.post("/auth/mfa/verify", json=payload.model_dump(), headers=headers)
+        response.raise_for_status()
+        return response.json()
+
+    async def verify_enroll_mfa(self, payload: MFAEnrollVerifyRequest, auth_header: str):
+        response = await self.client.post(
+            "/auth/mfa/enroll/verify",
+            json=payload.model_dump(),
+            headers={"Authorization": auth_header}
+        )
         response.raise_for_status()
         return response.json()
 

@@ -88,6 +88,12 @@ export default function LoginPage() {
         return;
       }
 
+      // 🛡️ HANDLE MFA REDIRECT
+      if (result.data?.mfaRequired && result.data?.mfaToken) {
+        router.push(`${ROUTES.auth.mfa}?mfaToken=${result.data.mfaToken}`);
+        return;
+      }
+
       // Update client-side auth state
       if (result.data?.user) {
         setAuth(result.data.user);
