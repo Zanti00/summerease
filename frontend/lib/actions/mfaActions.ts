@@ -2,8 +2,8 @@
 
 import { cookies } from "next/headers";
 
-const NEXT_PUBLIC_AUTH_API =
-  process.env.NEXT_PUBLIC_AUTH_API || "http://127.0.0.1:3001";
+const NEXT_PUBLIC_API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 /**
  * Initiates the MFA enrollment process.
@@ -18,7 +18,7 @@ export async function enrollMfa() {
       return { success: false, error: { message: "Authentication required" } };
     }
 
-    const response = await fetch(`${NEXT_PUBLIC_AUTH_API}/auth/mfa/enroll`, {
+    const response = await fetch(`${NEXT_PUBLIC_API_URL}/auth/mfa/enroll`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -44,17 +44,18 @@ export async function verifyMfa(tokenValue: string) {
     const cookieStore = await cookies();
     const authToken = cookieStore.get("access_token")?.value;
 
-    if (!authToken) {
-      return { success: false, error: { message: "Authentication required" } };
-    }
+    // NOTE: For login challenge, we might not have a session cookie yet if MFA is required before login completes.
+    // However, the current signinAction sets the cookie AFTER login success.
+    // If LexNexus requires a token for verify, it should be passed in the request body.
 
-    const response = await fetch(`${NEXT_PUBLIC_AUTH_API}/auth/mfa/verify`, {
+    const response = await fetch(`${NEXT_PUBLIC_API_URL}/auth/mfa/verify`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${authToken}`,
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       },
-      body: JSON.stringify({ token: tokenValue }),
+      body: JSON.stringify({ token: tokenValue }), // Aligning with NexusAuth schema
+      // NOTE: verifyMfa assumes mfa_token is handled. In the existing code, only 'token' was sent.
     });
 
     const result = await response.json();
@@ -80,7 +81,7 @@ export async function disableMfa(tokenValue: string) {
       return { success: false, error: { message: "Authentication required" } };
     }
 
-    const response = await fetch(`${NEXT_PUBLIC_AUTH_API}/auth/mfa/disable`, {
+    const response = await fetch(`${NEXT_PUBLIC_API_URL}/auth/mfa/disable`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

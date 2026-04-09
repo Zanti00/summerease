@@ -15,14 +15,8 @@ export async function logoutUser() {
       return { success: true }; // Consider it a success if we're already logged out
     }
 
-    if (!process.env.NEXT_PUBLIC_AUTH_API) {
-      throw new Error(
-        "NEXT_PUBLIC_AUTH_API is not defined in environment variables",
-      );
-    }
-
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_AUTH_API}/auth/logout`,
+      `${process.env.NEXT_PUBLIC_API_URL}/auth/logout`,
       {
         method: "POST",
         headers: {

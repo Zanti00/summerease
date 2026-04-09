@@ -1,27 +1,21 @@
 "use server";
 
-import { success } from "zod";
+import { z } from "zod";
 import { cookies } from "next/headers";
 
 export async function loginUser(email: string, password: string) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-      credentials: "include",
-    });
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+        credentials: "include",
+      },
+    );
 
     const result = await response.json();
-
-    // if (result.success) {
-    //   const { accessToken, user } = result.data;
-
-    //   localStorage.setItem("access_token", accessToken);
-    //   console.log("Login successful!", user);
-    // } else {
-    //   console.error("Login failed:", result.message);
-    // }
 
     if (result.success && result.data?.accessToken) {
       // ✅ MANUALLY SET THE COOKIE TO THE BROWSER
@@ -37,6 +31,7 @@ export async function loginUser(email: string, password: string) {
 
     return result;
   } catch (error) {
+    console.error("Login Error - Catch Block:", error);
     return { success: false, error: { message: "Network error" } };
   }
 }

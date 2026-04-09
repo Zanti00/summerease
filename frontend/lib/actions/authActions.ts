@@ -43,14 +43,11 @@ export async function getCurrentUser() {
   }
 
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API}/auth/me`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      // Note: In Next.js server actions, fetch doesn't automatically share cookies 
-      // with the backend unless we explicitly pass them or the backend is on the same domain.
-      // Since we are passing the token in the header, this satisfies the backend security.
     });
 
     const result = await response.json();

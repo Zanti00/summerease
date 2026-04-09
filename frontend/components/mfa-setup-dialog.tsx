@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { QrCode, Copy, Download, ChevronLeft, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { mfaService } from "@/services/mfa.service";
+import { enrollMfa, verifyMfa } from "@/lib/actions/mfaActions";
 
 interface MFASetupDialogProps {
   open: boolean;
@@ -35,7 +35,10 @@ export function MFASetupDialog({
   const [isSecured, setIsSecured] = useState(false);
   const [prevOpen, setPrevOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [enrollData, setEnrollData] = useState<{ qrCodeUrl: string; secret: string } | null>(null);
+  const [enrollData, setEnrollData] = useState<{
+    qrCodeUrl: string;
+    secret: string;
+  } | null>(null);
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -57,7 +60,7 @@ export function MFASetupDialog({
       const fetchEnrollment = async () => {
         setIsLoading(true);
         try {
-          const result = await mfaService.enroll();
+          const result = await enrollMfa();
           if (result.success) {
             setEnrollData({
               qrCodeUrl: result.data.qrCodeUrl,
@@ -66,7 +69,9 @@ export function MFASetupDialog({
             // Backup codes might also be sent here optionally, but verify returns them too
           } else {
             console.error("MFA Enrollment Error:", result.error);
-            toast.error(result.error?.message || "Failed to start MFA enrollment");
+            toast.error(
+              result.error?.message || "Failed to start MFA enrollment",
+            );
             // onOpenChange(false); // Don't auto-close, let user see state
           }
         } catch (error) {
@@ -85,7 +90,7 @@ export function MFASetupDialog({
     setIsLoading(true);
     const token = otp.join("");
     try {
-      const result = await mfaService.verify(token);
+      const result = await verifyMfa(token);
       if (result.success) {
         setRecoveryCodes(result.data.backupCodes || []);
         setStep(3);
@@ -138,7 +143,11 @@ export function MFASetupDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} disablePointerDismissal={true}>
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      disablePointerDismissal={true}
+    >
       <DialogPortal>
         <DialogOverlay className="bg-black/40 backdrop-blur-sm" />
         <DialogContent className="max-w-md bg-zinc-900 border-none text-zinc-100 p-6 flex flex-col gap-6 shadow-2xl">
@@ -197,9 +206,9 @@ export function MFASetupDialog({
                   <Loader2 className="h-8 w-8 text-zinc-400 animate-spin" />
                 ) : enrollData?.qrCodeUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img 
-                    src={enrollData.qrCodeUrl} 
-                    alt="MFA QR Code" 
+                  <img
+                    src={enrollData.qrCodeUrl}
+                    alt="MFA QR Code"
                     className="w-full h-full object-contain"
                   />
                 ) : (

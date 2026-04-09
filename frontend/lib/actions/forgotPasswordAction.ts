@@ -3,7 +3,7 @@
 export async function forgotPasswordAction(email: string) {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_AUTH_API}/auth/forgot-password`,
+      `${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

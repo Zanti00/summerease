@@ -87,12 +87,12 @@ export default function LoginPage() {
         setServerError(result.error?.message ?? "Something went wrong.");
         return;
       }
-      
+
       // Update client-side auth state
       if (result.data?.user) {
         setAuth(result.data.user);
       }
-      
+
       router.push(ROUTES.documents.root);
     } catch (error: unknown) {
       const err = error as Error;

@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X, Loader2, ShieldOff } from "lucide-react";
 import { toast } from "sonner";
-import { mfaService } from "@/services/mfa.service";
+import { disableMfa } from "@/lib/actions/mfaActions";
 
 interface MFADisableDialogProps {
   open: boolean;
@@ -54,7 +54,7 @@ export function MFADisableDialog({
     setIsLoading(true);
     const token = otp.join("");
     try {
-      const result = await mfaService.disable(token);
+      const result = await disableMfa(token);
       if (result.success) {
         toast.success("MFA has been disabled");
         onComplete();
