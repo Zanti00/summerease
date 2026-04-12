@@ -25,10 +25,10 @@ export default function AuthCallbackPage() {
       if (token) {
         try {
           await setAuthCookie(token);
-          
+
           // Update global auth state
           // In a real scenario, you'd decode the token or fetch /me here
-          setAuth({ id: "oauth", email: "checking..." }); 
+          setAuth({ id: "oauth", email: "checking..." });
 
           setTimeout(() => {
             router.push(ROUTES.documents.root);
@@ -38,8 +38,7 @@ export default function AuthCallbackPage() {
           router.push(`${ROUTES.auth.login}?error=oauth_failed`);
         }
       } else if (error) {
-        console.error("OAuth error from backend:", error);
-        router.push(`${ROUTES.auth.login}?error=oauth_failed`);
+        router.push(`${ROUTES.auth.login}?error=${error}`);
       } else {
         // No token or error, unexpected state
         router.push(ROUTES.auth.login);
@@ -57,7 +56,9 @@ export default function AuthCallbackPage() {
           <Loader2 className="w-12 h-12 text-primary animate-spin relative" />
         </div>
         <div className="flex flex-col items-center gap-2">
-          <h1 className="text-2xl font-bold text-foreground">Completing Sign In</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            Completing Sign In
+          </h1>
           <p className="text-muted-foreground animate-pulse">
             Securely syncing your account...
           </p>

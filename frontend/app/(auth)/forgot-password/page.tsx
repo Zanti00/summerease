@@ -46,7 +46,7 @@ export default function ForgotPasswordPage() {
         setServerError(result.error?.message ?? "Something went wrong.");
         return;
       }
-      
+
       toast.success("Recovery email sent! Please check your inbox.");
       router.push(`/${ROUTES.auth.login}`);
     } catch (error: any) {
@@ -60,7 +60,8 @@ export default function ForgotPasswordPage() {
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold">Forgot Password</h1>
           <p className="text-muted-foreground text-sm">
-            Enter your email and we&apos;ll send you a link to reset your password.
+            Enter your email and we&apos;ll send you a link to reset your
+            password.
           </p>
         </div>
 
@@ -85,7 +86,7 @@ export default function ForgotPasswordPage() {
         </form>
 
         <div className="mt-4 text-center">
-          <Link href={`/${ROUTES.auth.login}`}>
+          <Link href={ROUTES.auth.login}>
             <span className="text-primary hover:underline">Back to Login</span>
           </Link>
         </div>
