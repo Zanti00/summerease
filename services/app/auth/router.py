@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Header
+from fastapi.responses import JSONResponse
 from typing import Optional
 from .schemas import (
     LoginRequest, MFAVerifyRequest, MFAEnrollVerifyRequest, MFAResendRequest,
@@ -9,7 +10,7 @@ import httpx
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-async def handle_nexusauth_error(e: httpx.HTTPStatusError):
+def handle_nexusauth_error(e: httpx.HTTPStatusError):
     """
     Propagate NexusAuth errors faithfully or map them as requested.
     """
@@ -20,14 +21,14 @@ async def handle_nexusauth_error(e: httpx.HTTPStatusError):
     
     status_code = e.response.status_code
         
-    raise HTTPException(status_code=status_code, detail=detail)
+    return JSONResponse(status_code=status_code, content=detail)
 
 @router.post("/login")
 async def login(payload: LoginRequest, client: NexusAuthClient = Depends(get_nexusauth_client)):
     try:
         return await client.login(payload)
     except httpx.HTTPStatusError as e:
-        await handle_nexusauth_error(e)
+        return handle_nexusauth_error(e)
 
 @router.post("/mfa/verify")
 async def verify_mfa(
@@ -38,8 +39,7 @@ async def verify_mfa(
     try:
         return await client.verify_mfa(payload, authorization)
     except httpx.HTTPStatusError as e:
-        detail = e.response.json() if e.response.content else {"message": str(e)}
-        raise HTTPException(status_code=e.response.status_code, detail=detail)
+        return handle_nexusauth_error(e)
 
 @router.post("/mfa/enroll/verify")
 async def verify_enroll_mfa(
@@ -52,35 +52,35 @@ async def verify_enroll_mfa(
     try:
         return await client.verify_enroll_mfa(payload, authorization)
     except httpx.HTTPStatusError as e:
-        await handle_nexusauth_error(e)
+        return handle_nexusauth_error(e)
 
 @router.post("/mfa/resend")
 async def resend_otp(payload: MFAResendRequest, client: NexusAuthClient = Depends(get_nexusauth_client)):
     try:
         return await client.resend_otp(payload)
     except httpx.HTTPStatusError as e:
-        await handle_nexusauth_error(e)
+        return handle_nexusauth_error(e)
 
 @router.post("/register")
 async def register(payload: SignupRequest, client: NexusAuthClient = Depends(get_nexusauth_client)):
     try:
         return await client.signup(payload)
     except httpx.HTTPStatusError as e:
-        await handle_nexusauth_error(e)
+        return handle_nexusauth_error(e)
 
 @router.post("/forgot-password")
 async def forgot_password(payload: ForgotPasswordRequest, client: NexusAuthClient = Depends(get_nexusauth_client)):
     try:
         return await client.forgot_password(payload)
     except httpx.HTTPStatusError as e:
-        await handle_nexusauth_error(e)
+        return handle_nexusauth_error(e)
 
 @router.post("/reset-password")
 async def reset_password(payload: ResetPasswordRequest, client: NexusAuthClient = Depends(get_nexusauth_client)):
     try:
         return await client.reset_password(payload)
     except httpx.HTTPStatusError as e:
-        await handle_nexusauth_error(e)
+        return handle_nexusauth_error(e)
 
 @router.post("/logout")
 async def logout(
@@ -92,7 +92,7 @@ async def logout(
     try:
         return await client.logout(authorization)
     except httpx.HTTPStatusError as e:
-        await handle_nexusauth_error(e)
+        return handle_nexusauth_error(e)
 
 @router.get("/me")
 async def get_me(
@@ -104,7 +104,7 @@ async def get_me(
     try:
         return await client.get_me(authorization)
     except httpx.HTTPStatusError as e:
-        await handle_nexusauth_error(e)
+        return handle_nexusauth_error(e)
 
 @router.post("/mfa/enroll")
 async def enroll_mfa(
@@ -116,7 +116,7 @@ async def enroll_mfa(
     try:
         return await client.enroll_mfa(authorization)
     except httpx.HTTPStatusError as e:
-        await handle_nexusauth_error(e)
+        return handle_nexusauth_error(e)
 
 @router.post("/mfa/disable")
 async def disable_mfa(
@@ -129,4 +129,4 @@ async def disable_mfa(
     try:
         return await client.disable_mfa(payload.get("token"), authorization)
     except httpx.HTTPStatusError as e:
-        await handle_nexusauth_error(e)
+        return handle_nexusauth_error(e)

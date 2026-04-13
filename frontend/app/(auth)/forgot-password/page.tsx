@@ -48,7 +48,7 @@ export default function ForgotPasswordPage() {
       }
 
       toast.success("Recovery email sent! Please check your inbox.");
-      router.push(`/${ROUTES.auth.login}`);
+      router.push(ROUTES.auth.login);
     } catch (error: any) {
       setServerError(error.message || "An error occurred.");
     }
