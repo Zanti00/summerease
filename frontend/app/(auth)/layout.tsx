@@ -1,6 +1,5 @@
 import { LightWavesBackground } from "@/components/ui/light-waves";
 import { ReactNode, useMemo } from "react";
-import { Toaster } from "@/components/ui/sonner";
 import { Toast } from "@base-ui/react";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
@@ -17,7 +16,6 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen overflow-auto">
       <LightWavesBackground {...waves}>
         <div className="min-h-screen flex flex-col items-center justify-center">
-          <Toaster position="top-center" />
           <main className="w-full max-w-md flex-1 flex items-center justify-center px-5">
             {children}
           </main>

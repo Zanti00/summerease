@@ -3,7 +3,7 @@ from functools import lru_cache
 from ..core.config import get_settings
 from .schemas import (
     LoginRequest, MFAVerifyRequest, MFAEnrollVerifyRequest, MFAResendRequest, 
-    SignupRequest, ForgotPasswordRequest, ResetPasswordRequest
+    SignupRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest
 )
 
 class NexusAuthClient:
@@ -91,6 +91,15 @@ class NexusAuthClient:
         response = await self.client.post(
             "/auth/mfa/disable",
             json={"token": token},
+            headers={"Authorization": auth_header}
+        )
+        response.raise_for_status()
+        return response.json()
+
+    async def change_password(self, payload: ChangePasswordRequest, auth_header: str):
+        response = await self.client.post(
+            "/auth/change-password",
+            json=payload.model_dump(),
             headers={"Authorization": auth_header}
         )
         response.raise_for_status()

@@ -54,3 +54,8 @@ class LogoutRequest(BaseModel):
     # Logout usually just requires the Authorization header, 
     # but we might send a token in the body if NexusAuth expects it.
     token: Optional[str] = None
+
+class ChangePasswordRequest(BaseModel):
+    oldPassword: str
+    newPassword: str
+    logoutAll: bool = True

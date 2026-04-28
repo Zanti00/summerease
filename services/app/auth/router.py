@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from typing import Optional
 from .schemas import (
     LoginRequest, MFAVerifyRequest, MFAEnrollVerifyRequest, MFAResendRequest,
-    SignupRequest, ForgotPasswordRequest, ResetPasswordRequest
+    SignupRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest
 )
 from .nexusauth_client import get_nexusauth_client, NexusAuthClient
 import httpx
@@ -128,5 +128,29 @@ async def disable_mfa(
         raise HTTPException(status_code=401, detail="Missing Authorization header")
     try:
         return await client.disable_mfa(payload.get("token"), authorization)
+    except httpx.HTTPStatusError as e:
+        return handle_nexusauth_error(e)
+
+@router.post("/change-password")
+async def change_password(
+    payload: ChangePasswordRequest,
+    authorization: Optional[str] = Header(None),
+    client: NexusAuthClient = Depends(get_nexusauth_client)
+):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Missing Authorization header")
+    if payload.oldPassword == payload.newPassword:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False, 
+                "error": {
+                    "message": "New password cannot be the same as the current password."
+                }
+            }
+        )
+
+    try:
+        return await client.change_password(payload, authorization)
     except httpx.HTTPStatusError as e:
         return handle_nexusauth_error(e)

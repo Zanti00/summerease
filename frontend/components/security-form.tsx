@@ -1,8 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { MFASetupDialog } from "./mfa-setup-dialog";
 import { MFADisableDialog } from "./mfa-disable-dialog";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -15,6 +19,7 @@ export function SecurityForm({
   const { user, setAuth, isLoading } = useAuth();
   const [isSetupOpen, setIsSetupOpen] = useState(false);
   const [isDisableOpen, setIsDisableOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Read mfa_enabled from the authenticated user. If true, switch is on. If false or otherwise, it's off.
   const isMFAEnabled = user?.mfa_enabled === true;
@@ -57,27 +62,30 @@ export function SecurityForm({
         <h2 className="text-xl font-bold text-zinc-100">
           Multi-factor authentication (MFA)
         </h2>
-        
+
         <div className="flex items-center justify-between py-4 group">
           <div className="space-y-1">
-            <Label htmlFor="mfa-switch" className="text-zinc-100 font-semibold text-base cursor-pointer">
+            <Label
+              htmlFor="mfa-switch"
+              className="text-zinc-100 font-semibold text-base cursor-pointer"
+            >
               Authenticator app
             </Label>
             <p className="text-sm text-zinc-400">
               Use one-time codes from an authenticator app.
             </p>
           </div>
-          <Switch 
+          <Switch
             id="mfa-switch"
-            checked={isMFAEnabled} 
-            onCheckedChange={handleMFAToggle} 
+            checked={isMFAEnabled}
+            onCheckedChange={handleMFAToggle}
             disabled={isLoading}
           />
         </div>
       </div>
 
-      <MFASetupDialog 
-        open={isSetupOpen} 
+      <MFASetupDialog
+        open={isSetupOpen}
         onOpenChange={handleSetupCancel}
         onComplete={handleSetupComplete}
       />
@@ -88,12 +96,129 @@ export function SecurityForm({
         onComplete={handleDisableComplete}
       />
 
-      {/* Password Section placeholder (for future) */}
+      {/* Password Section */}
       <div className="pt-8 border-t border-zinc-800 space-y-6">
-        <h2 className="text-lg font-semibold text-zinc-100">Password</h2>
-        <p className="text-sm text-zinc-400">
-          Changing your password will log you out of all other sessions.
-        </p>
+        <div>
+          <h2 className="text-lg font-semibold text-zinc-100">
+            Change Password
+          </h2>
+          <p className="text-sm text-zinc-400">
+            Secure your account by updating your password.
+          </p>
+        </div>
+
+        <form
+          className="space-y-4 max-w-md"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setIsSubmitting(true);
+            try {
+              const formData = new FormData(e.currentTarget);
+              const oldPassword = formData.get("oldPassword") as string;
+              const newPassword = formData.get("newPassword") as string;
+              const logoutAll = formData.get("logoutAll") === "on";
+
+              if (!oldPassword || !newPassword) {
+                toast.error("Please fill in all password fields.");
+                return;
+              }
+
+              if (oldPassword === newPassword) {
+                toast.error(
+                  "New password cannot be the same as the current password.",
+                );
+                return;
+              }
+
+              const { changePasswordAction } =
+                await import("@/lib/actions/securityActions");
+              const result = await changePasswordAction(
+                oldPassword,
+                newPassword,
+                logoutAll,
+              );
+
+              if (result.success) {
+                toast.success(
+                  "Password updated successfully. Logging you out...",
+                );
+
+                if (result.data?.loggedOut) {
+                  // If they logged out of all devices, wait a moment then redirect to login
+                  setTimeout(() => {
+                    window.location.href = "/login";
+                  }, 2000);
+                } else {
+                  (e.target as HTMLFormElement).reset();
+                }
+              } else {
+                toast.error(
+                  result.error?.message || "Failed to change password.",
+                );
+              }
+            } catch (error) {
+              console.error("Password change error:", error);
+              toast.error("An unexpected error occurred.");
+            } finally {
+              setIsSubmitting(false);
+            }
+          }}
+          id="change-password-form"
+        >
+          <div className="space-y-2">
+            <Label htmlFor="oldPassword">Current Password</Label>
+            <Input
+              id="oldPassword"
+              name="oldPassword"
+              type="password"
+              required
+              className="bg-zinc-800 border-zinc-700 text-zinc-100"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="newPassword">New Password</Label>
+            <Input
+              id="newPassword"
+              name="newPassword"
+              type="password"
+              required
+              minLength={8}
+              className="bg-zinc-800 border-zinc-700 text-zinc-100"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 pt-2">
+            <input
+              type="checkbox"
+              id="logoutAll"
+              name="logoutAll"
+              defaultChecked
+              className="w-4 h-4 rounded border-zinc-700 text-primary focus:ring-primary bg-zinc-800 cursor-pointer"
+            />
+            <Label
+              htmlFor="logoutAll"
+              className="text-sm font-normal cursor-pointer text-zinc-300"
+            >
+              Log out of all other devices
+            </Label>
+          </div>
+
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="mt-4 bg-zinc-100 text-black hover:bg-zinc-300 font-semibold disabled:opacity-70 disabled:cursor-not-allowed min-w-[140px] flex items-center justify-center gap-2"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Updating...</span>
+              </>
+            ) : (
+              "Update Password"
+            )}
+          </Button>
+        </form>
       </div>
     </div>
   );
