@@ -9,7 +9,7 @@ import Link from "next/link";
 import { ROUTES } from "@/app/constants/routes";
 import AuthLayout from "../layout";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useLoginForm } from "@/hooks/useLoginForm";
 import { FormError } from "@/components/ui/form-error";
@@ -23,6 +23,7 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setAuth } = useAuth();
+  const handledSuccessToast = useRef(false);
 
   useEffect(() => {
     const errorParam = searchParams.get("error");
@@ -43,19 +44,40 @@ export default function LoginPage() {
   }, [searchParams]);
 
   useEffect(() => {
+    if (handledSuccessToast.current) return;
+
     const getCookie = (name: string) => {
       const value = `; ${document.cookie}`;
       const parts = value.split(`; ${name}=`);
       if (parts.length === 2) return parts.pop()?.split(";").shift();
     };
 
-    if (getCookie("verified_toast") === "true") {
-      toast.success("Email verified. You may now login");
+    const verifiedParam = searchParams.get("verified");
+    const loggedOutParam = searchParams.get("loggedOut");
+    const shouldShowVerifiedToast =
+      verifiedParam === "true" || getCookie("verified_toast") === "true";
+    const shouldShowLoggedOutToast = loggedOutParam === "true";
+
+    if (shouldShowVerifiedToast || shouldShowLoggedOutToast) {
+      handledSuccessToast.current = true;
+
+      if (shouldShowVerifiedToast) {
+        toast.success("Email verified. You may now log in");
+      }
+
+      const url = new URL(window.location.href);
+      url.searchParams.delete("verified");
+      url.searchParams.delete("loggedOut");
+      window.history.replaceState({}, "", url.toString());
 
       document.cookie =
         "verified_toast=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
+      if (shouldShowLoggedOutToast) {
+        toast.success("You have been logged out");
+      }
     }
-  }, []);
+  }, [searchParams]);
 
   const {
     register,
@@ -100,7 +122,7 @@ export default function LoginPage() {
         setAuth(result.data.user);
       }
 
-      router.push(ROUTES.documents.root);
+      router.push(`${ROUTES.documents.root}?login=success`);
     } catch (error: unknown) {
       const err = error as Error;
       setServerError(err.message || "An error occurred during login.");

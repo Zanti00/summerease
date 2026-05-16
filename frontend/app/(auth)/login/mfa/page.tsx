@@ -11,7 +11,6 @@ import { FormError } from "@/components/ui/form-error";
 import AuthLayout from "../../layout";
 import { verifyMfa } from "@/lib/actions/mfaAction";
 import { ROUTES } from "@/app/constants/routes";
-import { toast } from "sonner";
 import { useAuth } from "@/components/providers/auth-provider";
 
 export default function MfaPage() {
@@ -76,12 +75,11 @@ export default function MfaPage() {
       const result = await verifyMfa(code, mfaToken!);
 
       if (result.success) {
-        toast.success("MFA Verified. Welcome back!");
         sessionStorage.removeItem("mfa_in_progress");
         if (result.data?.user) {
           setAuth(result.data.user);
         }
-        router.push(ROUTES.documents.root);
+        router.push(`${ROUTES.documents.root}?login=success`);
       } else {
         setError(result.error?.message || "Invalid or expired MFA code.");
       }

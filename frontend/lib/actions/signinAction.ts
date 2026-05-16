@@ -1,12 +1,12 @@
 "use server";
 
-import { z } from "zod";
 import { cookies } from "next/headers";
+import { API_BASE_URL } from "@/lib/apiConfig";
 
 export async function loginUser(email: string, password: string) {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
+      `${API_BASE_URL}/auth/login`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

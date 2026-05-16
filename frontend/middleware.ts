@@ -126,7 +126,6 @@ export async function middleware(request: NextRequest) {
 
     response.cookies.delete("access_token");
     response.cookies.delete("refresh_token");
-    response.cookies.delete("verified_toast");
 
     // Clear storage to prevent "ghost" data
     response.headers.set("Clear-Site-Data", '"cache", "cookies", "storage"');

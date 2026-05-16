@@ -2,17 +2,19 @@ from fastapi import FastAPI
 from .auth.router import router as auth_router
 
 app = FastAPI(
-    title="SummerEase",
-    description="A website for summarizing, interacting, and check plagiarism for uploaded documents",
-    version="1.0.0"
+    title="SummerEase API v1",
+    description="V1 API for SummerEase services",
+    version="1.0.0",
+    docs_url="/docs",
+    openapi_url="/openapi.json"
 )
 
 app.include_router(auth_router)
 
 @app.get("/", tags=["Health Check"])
 async def root():
-    from app.core.config import get_settings
-    from app.auth.nexusauth_client import get_nexusauth_client
+    from .core.config import get_settings
+    from .auth.nexusauth_client import get_nexusauth_client
     import httpx
     
     # Manually clear caches to be absolutely sure

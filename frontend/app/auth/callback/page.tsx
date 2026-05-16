@@ -31,7 +31,7 @@ export default function AuthCallbackPage() {
           setAuth({ id: "oauth", email: "checking..." });
 
           setTimeout(() => {
-            router.push(ROUTES.documents.root);
+            router.push(`${ROUTES.documents.root}?login=success`);
           }, 800);
         } catch (err) {
           console.error("Failed to set auth cookie:", err);

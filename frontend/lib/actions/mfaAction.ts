@@ -1,11 +1,12 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { API_BASE_URL } from "@/lib/apiConfig";
 
 export async function verifyMfa(code: string, mfaToken: string) {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/auth/mfa/verify`,
+      `${API_BASE_URL}/auth/mfa/verify`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

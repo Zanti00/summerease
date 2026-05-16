@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { API_BASE_URL } from "@/lib/apiConfig";
 
 /**
  * Server action to securely set the access token cookie.
@@ -43,7 +44,7 @@ export async function getCurrentUser() {
   }
 
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+    const response = await fetch(`${API_BASE_URL}/auth/me`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,

@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { API_BASE_URL } from "@/lib/apiConfig";
 
 export async function logoutUser() {
   try {
@@ -16,7 +17,7 @@ export async function logoutUser() {
     }
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/auth/logout`,
+      `${API_BASE_URL}/auth/logout`,
       {
         method: "POST",
         headers: {

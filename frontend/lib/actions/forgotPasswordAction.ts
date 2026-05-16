@@ -1,9 +1,9 @@
-"use server";
+import { API_BASE_URL } from "@/lib/apiConfig";
 
 export async function forgotPasswordAction(email: string) {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password`,
+      `${API_BASE_URL}/auth/forgot-password`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

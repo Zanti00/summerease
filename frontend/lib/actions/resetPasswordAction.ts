@@ -1,9 +1,11 @@
 "use server";
 
+import { API_BASE_URL } from "@/lib/apiConfig";
+
 export async function resetPasswordAction(token: string, password: string) {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/auth/reset-password`,
+      `${API_BASE_URL}/auth/reset-password`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

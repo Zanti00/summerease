@@ -1,9 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-
-const NEXT_PUBLIC_API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+import { API_BASE_URL } from "@/lib/apiConfig";
 
 export async function changePasswordAction(oldPassword: string, newPassword: string, logoutAll: boolean) {
   try {
@@ -14,7 +12,7 @@ export async function changePasswordAction(oldPassword: string, newPassword: str
       return { success: false, error: { message: "Authentication required" } };
     }
 
-    const response = await fetch(`${NEXT_PUBLIC_API_URL}/auth/change-password`, {
+    const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

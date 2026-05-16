@@ -3,13 +3,13 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
 import { Home, Inbox, Calendar, Search, Settings, LucideIcon } from "lucide-react";
 
-export interface SidebarItem {
+export interface NavItem {
   title: string;
   url: string;
   icon: LucideIcon;
 }
 
-export const DEFAULT_SIDEBAR_ITEMS: SidebarItem[] = [
+export const DEFAULT_NAV_ITEMS: NavItem[] = [
   {
     title: "Home",
     url: "#",
@@ -40,10 +40,10 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarItem[] = [
 interface HeaderContextType {
   title: string;
   subtitle: string;
-  sidebarItems: SidebarItem[];
+  navItems: NavItem[];
   setTitle: (title: string) => void;
   setSubtitle: (subtitle: string) => void;
-  setSidebarItems: (items: SidebarItem[]) => void;
+  setNavItems: (items: NavItem[]) => void;
 }
 
 const HeaderContext = createContext<HeaderContextType | undefined>(undefined);
@@ -51,17 +51,17 @@ const HeaderContext = createContext<HeaderContextType | undefined>(undefined);
 export function HeaderProvider({ children }: { children: ReactNode }) {
   const [title, setTitle] = useState("Dashboard");
   const [subtitle, setSubtitle] = useState("Welcome back to SummerEase");
-  const [sidebarItems, setSidebarItems] = useState<SidebarItem[]>(DEFAULT_SIDEBAR_ITEMS);
+  const [navItems, setNavItems] = useState<NavItem[]>(DEFAULT_NAV_ITEMS);
 
   return (
     <HeaderContext.Provider
       value={{
         title,
         subtitle,
-        sidebarItems,
+        navItems,
         setTitle,
         setSubtitle,
-        setSidebarItems,
+        setNavItems,
       }}
     >
       {children}
