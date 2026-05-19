@@ -45,7 +45,7 @@ export function LightWavesBackground({
   const containerRef = useRef<HTMLDivElement>(null);
   const wavesRef = useRef<Wave[]>([]);
   const animationRef = useRef<number | undefined>(undefined);
-  const startTimeRef = useRef(Date.now());
+  const startTimeRef = useRef<number | null>(null);
 
   const initWaves = useCallback(
     (height: number) => {
@@ -73,6 +73,10 @@ export function LightWavesBackground({
     const container = containerRef.current;
     if (!canvas || !container) return;
 
+    if (startTimeRef.current === null) {
+      startTimeRef.current = Date.now();
+    }
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -93,7 +97,7 @@ export function LightWavesBackground({
     ro.observe(container);
 
     const draw = () => {
-      const time = (Date.now() - startTimeRef.current) * 0.001 * speed;
+      const time = (Date.now() - startTimeRef.current!) * 0.001 * speed;
 
       // Dark gradient background
       const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
@@ -229,7 +233,7 @@ export function LightWavesBackground({
   return (
     <div
       ref={containerRef}
-      className={cn("fixed inset-0 overflow-hidden", className)}
+      className={cn("fixed inset-0 overflow-hidden bg-[#030712]", className)}
     >
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 

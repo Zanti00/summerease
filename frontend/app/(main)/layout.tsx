@@ -11,14 +11,16 @@ export default function MainLayout({
 }) {
   return (
     <HeaderProvider>
-      <div className="flex min-h-screen w-full flex-col">
+      <div className="flex min-h-screen w-full flex-col bg-background">
         <Topbar />
         <Suspense fallback={null}>
           <LoginSuccessToast />
         </Suspense>
         <main className="flex flex-1 flex-col gap-4 p-4 md:p-8 pt-6">
           {children}
-          <SettingsHashController />
+          <Suspense fallback={null}>
+            <SettingsHashController />
+          </Suspense>
         </main>
       </div>
     </HeaderProvider>

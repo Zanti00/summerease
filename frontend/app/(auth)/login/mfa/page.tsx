@@ -1,19 +1,19 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Loader2, ArrowLeft } from "lucide-react";
-import { Field, FieldLabel } from "@/components/ui/field";
+
 import { FormError } from "@/components/ui/form-error";
-import AuthLayout from "../../layout";
+
 import { verifyMfa } from "@/lib/actions/mfaAction";
 import { ROUTES } from "@/app/constants/routes";
 import { useAuth } from "@/components/providers/auth-provider";
 
-export default function MfaPage() {
+function MfaForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { setAuth } = useAuth();
@@ -91,7 +91,7 @@ export default function MfaPage() {
   };
 
   return (
-    <AuthLayout>
+
       <Card className="p-6 mx-auto w-full max-w-md shadow-2xl flex flex-col gap-6 bg-card/50 backdrop-blur-md border-ring/20">
         <div className="space-y-2 text-center">
           <h1 className="text-2xl font-bold tracking-tight">Two-Factor Authentication</h1>
@@ -181,6 +181,14 @@ export default function MfaPage() {
           )}
         </div>
       </Card>
-    </AuthLayout>
+
+  );
+}
+
+export default function MfaPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <MfaForm />
+    </Suspense>
   );
 }

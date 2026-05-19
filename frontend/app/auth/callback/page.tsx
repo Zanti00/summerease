@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { setAuthCookie } from "@/lib/actions/authActions";
 import { ROUTES } from "@/app/constants/routes";
@@ -8,7 +8,7 @@ import AuthLayout from "@/app/(auth)/layout";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 
-export default function AuthCallbackPage() {
+function AuthCallbackForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setAuth } = useAuth();
@@ -65,5 +65,13 @@ export default function AuthCallbackPage() {
         </div>
       </div>
     </AuthLayout>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AuthCallbackForm />
+    </Suspense>
   );
 }

@@ -2,11 +2,11 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { User, LogOut, Settings, ChevronRight } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -34,23 +34,26 @@ export function Topbar() {
   const pathSegments = pathname.split("/").filter(Boolean);
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full shrink-0 items-center justify-between border-b bg-background px-6">
+    <header className="sticky top-0 z-30 flex h-16 w-full shrink-0 items-center justify-between border-b bg-secondary-background px-6">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/" className="hover:text-foreground transition-colors font-medium">
+        <Link
+          href="/"
+          className="hover:text-foreground transition-colors font-medium"
+        >
           SummerEase
         </Link>
         {pathSegments.map((segment, index) => {
           const href = `/${pathSegments.slice(0, index + 1).join("/")}`;
           const isLast = index === pathSegments.length - 1;
-          
+
           return (
             <div key={href} className="flex items-center gap-2">
               <ChevronRight className="size-4 opacity-50" />
-              <Link 
-                href={href} 
+              <Link
+                href={href}
                 className={cn(
                   "hover:text-foreground transition-colors capitalize",
-                  isLast && "font-medium text-foreground pointer-events-none"
+                  isLast && "font-medium text-foreground pointer-events-none",
                 )}
               >
                 {segment.replace(/-/g, " ")}
@@ -61,7 +64,15 @@ export function Topbar() {
       </div>
 
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="rounded-full hover:bg-muted transition-colors" />}>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full hover:bg-muted transition-colors"
+            />
+          }
+        >
           <User className="size-5" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56 p-1">
@@ -73,15 +84,20 @@ export function Topbar() {
               {isLoading ? "Please wait" : user?.email || "not logged in"}
             </span>
           </div>
-          <DropdownMenuItem 
-            render={<Link href={ROUTES.settings.account} className="flex items-center gap-2 w-full px-2 py-1.5" />} 
+          <DropdownMenuItem
+            render={
+              <Link
+                href={ROUTES.settings.account}
+                className="flex items-center gap-2 w-full px-2 py-1.5"
+              />
+            }
             className="cursor-pointer rounded-sm"
           >
             <Settings className="size-4" />
             <span>Settings</span>
           </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={handleLogout} 
+          <DropdownMenuItem
+            onClick={handleLogout}
             className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 rounded-sm px-2 py-1.5"
           >
             <LogOut className="size-4" />

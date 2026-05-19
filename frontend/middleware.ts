@@ -29,19 +29,9 @@ async function verifyToken(token: string) {
 }
 
 export async function middleware(request: NextRequest) {
-  const url = request.nextUrl.clone();
-  const host = request.headers.get("host") || "";
 
-  // Enforce 127.0.0.1 over localhost to avoid session/origin issues
-  // ONLY redirect if the 'host' header explicitly contains 'localhost'
-  if (host.includes("localhost")) {
-    url.hostname = "127.0.0.1";
-    // We must ensure the port is preserved if specified in the Host header
-    if (host.includes(":")) {
-      url.port = host.split(":")[1];
-    }
-    return NextResponse.redirect(url);
-  }
+
+  // Removed forced redirection from localhost to 127.0.0.1 to allow both hosts.
 
   const accessToken = request.cookies.get("access_token")?.value;
   const refreshToken = request.cookies.get("refresh_token")?.value;

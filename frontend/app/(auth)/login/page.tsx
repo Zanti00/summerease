@@ -7,9 +7,8 @@ import { FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { ROUTES } from "@/app/constants/routes";
-import AuthLayout from "../layout";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { toast } from "sonner";
 import { useLoginForm } from "@/hooks/useLoginForm";
 import { FormError } from "@/components/ui/form-error";
@@ -18,7 +17,7 @@ import { useRouter } from "next/navigation";
 import { LoginFormData } from "@/lib/schemas/auth.schema";
 import { useAuth } from "@/components/providers/auth-provider";
 
-export default function LoginPage() {
+function LoginForm() {
   const [serverError, setServerError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -130,7 +129,7 @@ export default function LoginPage() {
   });
 
   return (
-    <AuthLayout>
+
       <Card className="p-6 mx-auto w-full max-w-md shadow-2xl">
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
           {serverError && <FormError message={serverError} />}
@@ -210,6 +209,14 @@ export default function LoginPage() {
           </Link>
         </div>
       </Card>
-    </AuthLayout>
+
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }

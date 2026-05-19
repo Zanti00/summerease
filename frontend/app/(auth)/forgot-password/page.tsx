@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { useForgotPasswordForm } from "@/hooks/useForgotPasswordForm";
 import { FormError } from "@/components/ui/form-error";
 import { forgotPasswordAction } from "@/lib/actions/forgotPasswordAction";
-import AuthLayout from "../layout";
+
 import { useRouter } from "next/navigation";
 
 export default function ForgotPasswordPage() {
@@ -55,7 +55,7 @@ export default function ForgotPasswordPage() {
   });
 
   return (
-    <AuthLayout>
+
       <Card className="p-6 mx-auto w-full max-w-md shadow-2xl">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold">Forgot Password</h1>
@@ -91,6 +91,6 @@ export default function ForgotPasswordPage() {
           </Link>
         </div>
       </Card>
-    </AuthLayout>
+
   );
 }

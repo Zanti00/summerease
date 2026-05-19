@@ -11,7 +11,7 @@ import { useResetPasswordForm } from "@/hooks/useResetPasswordForm";
 import { FormError } from "@/components/ui/form-error";
 import { resetPasswordAction } from "@/lib/actions/resetPasswordAction";
 import { useRouter, useSearchParams } from "next/navigation";
-import AuthLayout from "../layout";
+
 
 function ResetPasswordForm() {
   const [serverError, setServerError] = useState<string | null>(null);
@@ -108,7 +108,7 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <AuthLayout>
+
       <Card className="p-6 mx-auto w-full max-w-md shadow-2xl">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold">Reset Password</h1>
@@ -121,6 +121,6 @@ export default function ResetPasswordPage() {
           <ResetPasswordForm />
         </Suspense>
       </Card>
-    </AuthLayout>
+
   );
 }

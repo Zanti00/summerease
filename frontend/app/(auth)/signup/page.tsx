@@ -7,16 +7,16 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { ROUTES } from "@/app/constants/routes";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { toast } from "sonner";
-import AuthLayout from "../layout";
+
 import { useSignupForm } from "@/hooks/useSignupForm";
 import { SignupFormData, signupPayloadSchema } from "@/lib/schemas/auth.schema";
 import { registerUser } from "@/lib/actions/signupAction";
 import { FormError } from "@/components/ui/form-error";
 
 
-export default function SignUpPage() {
+function SignUpForm() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -70,19 +70,17 @@ export default function SignUpPage() {
 
   if (isSuccess) {
     return (
-      <AuthLayout>
-        <Card className="p-6 mx-auto w-full max-w-md shadow-2xl text-center py-10">
-          <p className="text-lg font-semibold">Check your email!</p>{" "}
-          <p className="text-muted-foreground text-sm mt-1">
-            We sent a verification link to get you started.
-          </p>
-        </Card>
-      </AuthLayout>
+      <Card className="p-6 mx-auto w-full max-w-md shadow-2xl text-center py-10">
+        <p className="text-lg font-semibold">Check your email!</p>{" "}
+        <p className="text-muted-foreground text-sm mt-1">
+          We sent a verification link to get you started.
+        </p>
+      </Card>
     );
   }
 
   return (
-    <AuthLayout>
+
       <Card className="p-6 mx-auto w-full max-w-md shadow-2xl">
         <form onSubmit={onSubmit}>
           <Field>
@@ -221,6 +219,14 @@ export default function SignUpPage() {
           </Link>
         </div>
       </Card>
-    </AuthLayout>
+
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignUpForm />
+    </Suspense>
   );
 }
