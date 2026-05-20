@@ -17,9 +17,11 @@ async def root():
     from .auth.nexusauth_client import get_nexusauth_client
     import httpx
     
-    # Manually clear caches to be absolutely sure
-    get_settings.cache_clear()
-    get_nexusauth_client.cache_clear()
+    # Safely clear caches if they exist
+    if hasattr(get_settings, "cache_clear"):
+        get_settings.cache_clear()
+    if hasattr(get_nexusauth_client, "cache_clear"):
+        get_nexusauth_client.cache_clear()
     
     settings = get_settings()
     client_wrapper = get_nexusauth_client()

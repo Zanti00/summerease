@@ -1,0 +1,107 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: summerease_db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: summerease_redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  nexusauth:
+    build:
+      context: ../NexusAuth
+      dockerfile: Dockerfile
+    container_name: summerease_nexusauth
+    ports:
+      - "3001:3001"
+    env_file:
+      - ../NexusAuth/.env
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - HOST=0.0.0.0
+      - DATABASE_URL=postgresql://postgres:admin@db:5432/NexusAuth
+      - REDIS_URL=redis://redis:6379
+      - JWT_PRIVATE_KEY_PATH=./keys/private.pem
+      - JWT_PUBLIC_KEY_PATH=./keys/public.pem
+      - JWT_ACCESS_TOKEN_TTL=900
+      - JWT_REFRESH_TOKEN_TTL=604800
+      - MFA_ENCRYPTION_KEY=C9AA958E07E825C131D6877A1986597C5E4AAB2B79EE21C1621361AFD0060FF7
+      - RATE_LIMIT_LOGIN_MAX=10
+      - RATE_LIMIT_LOGIN_WINDOW_MS=900000
+      - SMTP_HOST=sandbox.smtp.mailtrap.io
+      - SMTP_PORT=2525
+      - SMTP_USER=6c2de7c8087b68
+      - SMTP_PASS=6fa9db29a60ef7
+      - SMTP_FROM=NexusAuth
+      - FRONTEND_URL=http://localhost:3000
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  services:
+    build:
+      context: ./services
+      dockerfile: Dockerfile
+    container_name: summerease_services
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:admin@db:5432/summerease
+      - SECRET_KEY=your-secret-key-here
+      - ENVIRONMENT=development
+      - NEXUSAUTH_BASE_URL=http://nexusauth:3001
+      - NEXUSAUTH_API_KEY=dummy_key
+    depends_on:
+      db:
+        condition: service_healthy
+      nexusauth:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: summerease_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_AUTH_API=http://localhost:3001
+      - NODE_ENV=production
+    # extra_hosts allows Next.js server-side code/middleware to resolve "localhost"
+    # to the docker host machine gateway, routing local API calls back to the exposed containers.
+    extra_hosts:
+      - "localhost:host-gateway"
+    depends_on:
+      - services
+      - nexusauth
+
+volumes:
+  postgres_data:
+  redis_data:
