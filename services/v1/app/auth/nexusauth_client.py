@@ -108,3 +108,21 @@ class NexusAuthClient:
 # @lru_cache(maxsize=1)
 def get_nexusauth_client():
     return NexusAuthClient()
+
+from fastapi import Header, HTTPException, Depends
+
+async def get_current_user(
+    authorization: str = Header(None),
+    client: NexusAuthClient = Depends(get_nexusauth_client)
+):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Missing Authorization header")
+    try:
+        user_data = await client.get_me(authorization)
+        if "data" in user_data and "user" in user_data["data"]:
+            return user_data["data"]["user"]
+        return user_data.get("user", user_data)
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 401:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(status_code=e.response.status_code, detail="Authentication failed")

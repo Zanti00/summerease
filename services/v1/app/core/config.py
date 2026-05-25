@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     NEXUSAUTH_BASE_URL: str
     NEXUSAUTH_API_KEY: str
 
+    # Supabase Settings
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 # @lru_cache()

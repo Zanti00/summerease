@@ -64,43 +64,57 @@ services:
       redis:
         condition: service_healthy
 
-  services:
+#   services:
+#     build:
+#       context: ./services
+#       dockerfile: Dockerfile
+#     container_name: summerease_services
+#     ports:
+#       - "8000:8000"
+#     environment:
+#       - DATABASE_URL=postgresql+asyncpg://postgres:admin@db:5432/summerease
+#       - SECRET_KEY=your-secret-key-here
+#       - ENVIRONMENT=development
+#       - NEXUSAUTH_BASE_URL=http://nexusauth:3001
+#       - NEXUSAUTH_API_KEY=dummy_key
+#     depends_on:
+#       db:
+#         condition: service_healthy
+#       nexusauth:
+#         condition: service_started
+
+  rq_worker:
     build:
       context: ./services
       dockerfile: Dockerfile
-    container_name: summerease_services
-    ports:
-      - "8000:8000"
+    container_name: summerease_rq_worker
+    command: rq worker documents_autosave --url redis://redis:6379
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:admin@db:5432/summerease
-      - SECRET_KEY=your-secret-key-here
-      - ENVIRONMENT=development
-      - NEXUSAUTH_BASE_URL=http://nexusauth:3001
-      - NEXUSAUTH_API_KEY=dummy_key
+      - SUPABASE_URL=https://jmzggeqgwetftsyffcyn.supabase.co
+      - SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptemdnZXFnd2V0ZnRzeWZmY3luIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MzExNTYsImV4cCI6MjA5NTIwNzE1Nn0.pXp0fTYeWn9sAPJb-3g7CJdwYYEmtgE07E60lJF1WTQ
     depends_on:
-      db:
-        condition: service_healthy
-      nexusauth:
-        condition: service_started
+      - redis
+      - db
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: summerease_frontend
-    ports:
-      - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
-      - NEXT_PUBLIC_AUTH_API=http://localhost:3001
-      - NODE_ENV=production
-    # extra_hosts allows Next.js server-side code/middleware to resolve "localhost"
-    # to the docker host machine gateway, routing local API calls back to the exposed containers.
-    extra_hosts:
-      - "localhost:host-gateway"
-    depends_on:
-      - services
-      - nexusauth
+#   frontend:
+#     build:
+#       context: ./frontend
+#       dockerfile: Dockerfile
+#     container_name: summerease_frontend
+#     ports:
+#       - "3000:3000"
+#     environment:
+#       - NEXT_PUBLIC_API_URL=http://localhost:8000
+#       - NEXT_PUBLIC_AUTH_API=http://localhost:3001
+#       - NODE_ENV=production
+#     # extra_hosts allows Next.js server-side code/middleware to resolve "localhost"
+#     # to the docker host machine gateway, routing local API calls back to the exposed containers.
+#     extra_hosts:
+#       - "localhost:host-gateway"
+#     depends_on:
+#       - services
+#       - nexusauth
 
 volumes:
   postgres_data:

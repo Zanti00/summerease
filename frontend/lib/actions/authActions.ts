@@ -58,3 +58,12 @@ export async function getCurrentUser() {
     return { success: false, error: { message: "Internal server error" } };
   }
 }
+
+/**
+ * Server action to get the raw authentication token.
+ * Used for authorizing requests to the backend API from client components.
+ */
+export async function getAuthToken() {
+  const cookieStore = await cookies();
+  return cookieStore.get("access_token")?.value || null;
+}

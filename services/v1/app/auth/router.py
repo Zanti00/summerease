@@ -3,7 +3,8 @@ from fastapi.responses import JSONResponse
 from typing import Optional
 from .schemas import (
     LoginRequest, MFAVerifyRequest, MFAEnrollVerifyRequest, MFAResendRequest,
-    SignupRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest
+    SignupRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest,
+    VerifyPasswordRequest
 )
 from .nexusauth_client import get_nexusauth_client, NexusAuthClient
 import httpx
@@ -153,4 +154,27 @@ async def change_password(
     try:
         return await client.change_password(payload, authorization)
     except httpx.HTTPStatusError as e:
+        return handle_nexusauth_error(e)
+
+@router.post("/verify-password")
+async def verify_password(
+    payload: VerifyPasswordRequest,
+    authorization: Optional[str] = Header(None),
+    client: NexusAuthClient = Depends(get_nexusauth_client)
+):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Missing Authorization header")
+    try:
+        user_data = await client.get_me(authorization)
+        user = user_data.get("data", {}).get("user") or user_data.get("user")
+        if not user or not user.get("email"):
+            raise HTTPException(status_code=401, detail="Failed to retrieve user email")
+            
+        # Verify by attempting to login
+        login_request = LoginRequest(email=user["email"], password=payload.password)
+        await client.login(login_request)
+        return {"success": True}
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 401:
+            raise HTTPException(status_code=401, detail="Invalid password")
         return handle_nexusauth_error(e)

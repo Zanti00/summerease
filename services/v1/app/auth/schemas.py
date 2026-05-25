@@ -59,3 +59,6 @@ class ChangePasswordRequest(BaseModel):
     oldPassword: str
     newPassword: str
     logoutAll: bool = True
+
+class VerifyPasswordRequest(BaseModel):
+    password: str

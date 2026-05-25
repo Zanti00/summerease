@@ -10,7 +10,7 @@ RUN npm install -g pnpm@9.0.0
 COPY package.json pnpm-lock.yaml* ./
 
 # Install all dependencies (including devDependencies for build)
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 # Copy the rest of the application files
 COPY . .
@@ -35,7 +35,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY package.json pnpm-lock.yaml* ./
 
 # Install production-only dependencies
-RUN pnpm install --prod --frozen-lockfile
+RUN pnpm install --prod --no-frozen-lockfile
 
 # Copy build artifacts and static assets
 COPY --from=builder /app/.next ./.next
