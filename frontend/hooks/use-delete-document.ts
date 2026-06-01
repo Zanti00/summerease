@@ -88,7 +88,6 @@ export function useDeleteDocument(options?: UseDeleteDocumentOptions) {
       }
     } catch (err) {
       const error = err instanceof Error ? err : new Error("Failed to delete document");
-      toast.error(error.message || "Failed to delete document");
       if (options?.onError) {
         options.onError(error);
       }

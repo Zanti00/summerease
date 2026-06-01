@@ -59,7 +59,7 @@ export function SecurityForm({
     <div className="space-y-12">
       {/* MFA Section */}
       <div className="space-y-6">
-        <h2 className="text-xl font-bold text-zinc-100">
+        <h2 className="text-xl font-bold text-black">
           Multi-factor authentication (MFA)
         </h2>
 
@@ -67,11 +67,11 @@ export function SecurityForm({
           <div className="space-y-1">
             <Label
               htmlFor="mfa-switch"
-              className="text-zinc-100 font-semibold text-base cursor-pointer"
+              className="text-black font-semibold text-base cursor-pointer"
             >
               Authenticator app
             </Label>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-zinc-600">
               Use one-time codes from an authenticator app.
             </p>
           </div>
@@ -97,12 +97,12 @@ export function SecurityForm({
       />
 
       {/* Password Section */}
-      <div className="pt-8 border-t border-zinc-800 space-y-6">
+      <div className="pt-8 border-t border-zinc-200 space-y-6">
         <div>
-          <h2 className="text-lg font-semibold text-zinc-100">
+          <h2 className="text-lg font-semibold text-black">
             Change Password
           </h2>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-zinc-600">
             Secure your account by updating your password.
           </p>
         </div>
@@ -172,7 +172,7 @@ export function SecurityForm({
               name="oldPassword"
               type="password"
               required
-              className="bg-zinc-800 border-zinc-700 text-zinc-100"
+              className="bg-white border-zinc-300 text-black"
             />
           </div>
 
@@ -184,7 +184,7 @@ export function SecurityForm({
               type="password"
               required
               minLength={8}
-              className="bg-zinc-800 border-zinc-700 text-zinc-100"
+              className="bg-white border-zinc-300 text-black"
             />
           </div>
 
@@ -194,11 +194,11 @@ export function SecurityForm({
               id="logoutAll"
               name="logoutAll"
               defaultChecked
-              className="w-4 h-4 rounded border-zinc-700 text-primary focus:ring-primary bg-zinc-800 cursor-pointer"
+              className="w-4 h-4 rounded border-zinc-300 text-primary focus:ring-primary bg-white cursor-pointer"
             />
             <Label
               htmlFor="logoutAll"
-              className="text-sm font-normal cursor-pointer text-zinc-300"
+              className="text-sm font-normal cursor-pointer text-black"
             >
               Log out of all other devices
             </Label>
@@ -207,7 +207,7 @@ export function SecurityForm({
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="mt-4 bg-zinc-100 text-black hover:bg-zinc-300 font-semibold disabled:opacity-70 disabled:cursor-not-allowed min-w-[140px] flex items-center justify-center gap-2"
+            className="mt-4 bg-black text-white hover:bg-zinc-800 font-semibold disabled:opacity-70 disabled:cursor-not-allowed min-w-[140px] flex items-center justify-center gap-2"
           >
             {isSubmitting ? (
               <>

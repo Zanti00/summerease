@@ -1,11 +1,19 @@
 "use client";
 
 import React, { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface VerifyPasswordModalProps {
   isOpen: boolean;
@@ -25,27 +33,28 @@ export function VerifyPasswordModal({
   isLoading = false,
 }: VerifyPasswordModalProps) {
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password) {
-      setError("Password is required.");
+      toast.error("Password is required.");
       return;
     }
-    setError(null);
     try {
       await onConfirm(password);
       setPassword(""); // Clear password on success
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Verification failed. Please check your password.");
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Verification failed. Please check your password.",
+      );
     }
   };
 
   const handleOpenChange = (open: boolean) => {
     if (!open && !isLoading) {
       setPassword("");
-      setError(null);
       onClose();
     }
   };
@@ -69,13 +78,21 @@ export function VerifyPasswordModal({
               autoFocus
               disabled={isLoading}
             />
-            {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={isLoading}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+              disabled={isLoading}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading || !password}>
+            <Button
+              type="submit"
+              variant={"destructive"}
+              disabled={isLoading || !password}
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -79,6 +79,7 @@ export function useFileUpload(options: FileUploadOptions = {}) {
       }
 
       setIsProcessing(true);
+      let toastId: string | number | undefined;
 
       try {
         // Validate File Extension
@@ -130,20 +131,15 @@ export function useFileUpload(options: FileUploadOptions = {}) {
 
         let publicUrl: string | undefined;
 
+        toastId = toast.loading(`Uploading "${selectedFile.name}"...`);
+
         // Perform automatic upload to Supabase if bucket is specified
         if (options.supabaseBucket) {
-          const toastId = toast.loading(`Uploading "${selectedFile.name}" to storage...`);
           try {
             const { uploadToSupabaseBucket } = await import("@/lib/supabase");
             publicUrl = await uploadToSupabaseBucket(selectedFile, options.supabaseBucket);
-            toast.success(`Successfully uploaded "${selectedFile.name}"`, { id: toastId });
           } catch (uploadErr) {
-            const errorMsg = uploadErr instanceof Error ? uploadErr.message : "Failed to upload file to storage.";
-            toast.error(errorMsg, { id: toastId });
-            setError(errorMsg);
-            options.onError?.(errorMsg);
-            setIsProcessing(false);
-            return;
+            throw new Error(uploadErr instanceof Error ? uploadErr.message : "Failed to upload file to storage.");
           }
         }
 
@@ -152,11 +148,17 @@ export function useFileUpload(options: FileUploadOptions = {}) {
         if (options.onSuccess) {
           await options.onSuccess(selectedFile, publicUrl);
         }
+
+        toast.success(`Successfully uploaded "${selectedFile.name}"`, { id: toastId });
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : "An error occurred during file upload.";
         setError(errorMsg);
         options.onError?.(errorMsg);
-        toast.error(errorMsg);
+        if (toastId) {
+          toast.error(errorMsg, { id: toastId });
+        } else {
+          toast.error(errorMsg);
+        }
       } finally {
         setIsProcessing(false);
       }
