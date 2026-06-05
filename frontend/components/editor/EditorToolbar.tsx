@@ -4,6 +4,7 @@ import {
   Bold,
   Italic,
   Strikethrough,
+  Underline as UnderlineIcon,
   List,
   ListOrdered,
   Heading1,
@@ -13,15 +14,43 @@ import {
   Undo,
   Redo,
   Code,
+  Highlighter,
+  Palette,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  IndentIncrease,
+  IndentDecrease,
+  ChevronDown,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface EditorToolbarProps {
   editor: Editor | null;
-  saveStatus?: "saved" | "saving" | "unsaved";
 }
 
-export function EditorToolbar({ editor, saveStatus }: EditorToolbarProps) {
+const FONT_FAMILIES = [
+  { name: "Inter", value: "Inter" },
+  { name: "Comic Sans", value: "Comic Sans MS, Comic Sans" },
+  { name: "Serif", value: "serif" },
+  { name: "Monospace", value: "monospace" },
+  { name: "Cursive", value: "cursive" },
+];
+
+const FONT_SIZES = ["12px", "14px", "16px", "18px", "24px", "32px"];
+const LINE_HEIGHTS = ["1", "1.15", "1.5", "2", "2.5", "3"];
+
+export function EditorToolbar({
+  editor,
+}: EditorToolbarProps) {
   const [, forceUpdate] = useState({});
 
   useEffect(() => {
@@ -48,43 +77,153 @@ export function EditorToolbar({ editor, saveStatus }: EditorToolbarProps) {
       onMouseDown={(e) => e.preventDefault()}
     >
       <div className="flex justify-between w-full gap-1 border-r pr-1 mr-1">
-        <div className="flex">
-          <Button
-            variant={
-              editor.isActive("heading", { level: 1 }) ? "secondary" : "ghost"
-            }
-            size="sm"
-            onClick={() =>
-              editor.chain().focus().toggleHeading({ level: 1 }).run()
-            }
-            title="Heading 1"
-          >
-            <Heading1 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={
-              editor.isActive("heading", { level: 2 }) ? "secondary" : "ghost"
-            }
-            size="sm"
-            onClick={() =>
-              editor.chain().focus().toggleHeading({ level: 2 }).run()
-            }
-            title="Heading 2"
-          >
-            <Heading2 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={
-              editor.isActive("heading", { level: 3 }) ? "secondary" : "ghost"
-            }
-            size="sm"
-            onClick={() =>
-              editor.chain().focus().toggleHeading({ level: 3 }).run()
-            }
-            title="Heading 3"
-          >
-            <Heading3 className="h-4 w-4" />
-          </Button>
+        <div className="flex flex-wrap items-center gap-1">
+          {/* Font Family */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className="inline-flex items-center justify-between whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 w-[110px]">
+              <span className="truncate">
+                {FONT_FAMILIES.find(
+                  (f) =>
+                    f.value === editor.getAttributes("textStyle").fontFamily,
+                )?.name || "Default"}
+              </span>
+              <ChevronDown className="h-4 w-4 opacity-50" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().unsetFontFamily().run()}
+              >
+                Default
+              </DropdownMenuItem>
+              {FONT_FAMILIES.map((font) => (
+                <DropdownMenuItem
+                  key={font.name}
+                  onClick={() =>
+                    editor.chain().focus().setFontFamily(font.value).run()
+                  }
+                  style={{ fontFamily: font.value }}
+                >
+                  {font.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Font Size */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className="inline-flex items-center justify-between whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 w-[70px]">
+              <span>
+                {editor
+                  .getAttributes("textStyle")
+                  .fontSize?.replace("px", "") || "Default"}
+              </span>
+              <ChevronDown className="h-4 w-4 opacity-50" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().unsetFontSize().run()}
+              >
+                Default
+              </DropdownMenuItem>
+              {FONT_SIZES.map((size) => (
+                <DropdownMenuItem
+                  key={size}
+                  onClick={() => editor.chain().focus().setFontSize(size).run()}
+                >
+                  {size}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Text Color */}
+          <div className="flex items-center">
+            <div className="relative flex items-center">
+              <input
+                type="color"
+                onInput={(event) =>
+                  editor
+                    .chain()
+                    .focus()
+                    .setColor((event.target as HTMLInputElement).value)
+                    .run()
+                }
+                value={editor.getAttributes("textStyle").color || "#000000"}
+                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                title="Text Color"
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="pointer-events-none flex gap-1 px-2"
+                title="Text Color"
+              >
+                <Palette className="h-4 w-4" />
+                <div
+                  className="w-3 h-3 rounded-full border border-gray-300 dark:border-gray-600 shadow-sm"
+                  style={{
+                    backgroundColor:
+                      editor.getAttributes("textStyle").color || "transparent",
+                  }}
+                />
+              </Button>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => editor.chain().focus().unsetColor().run()}
+              title="Reset Text Color"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Highlight Color */}
+          <div className="flex items-center border-r pr-1 mr-1">
+            <div className="relative flex items-center">
+              <input
+                type="color"
+                onInput={(event) =>
+                  editor
+                    .chain()
+                    .focus()
+                    .toggleHighlight({
+                      color: (event.target as HTMLInputElement).value,
+                    })
+                    .run()
+                }
+                value={editor.getAttributes("highlight").color || "#ffff00"}
+                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                title="Highlight Color"
+              />
+              <Button
+                variant={editor.isActive("highlight") ? "secondary" : "ghost"}
+                size="sm"
+                className="pointer-events-none flex gap-1 px-2"
+                title="Highlight Color"
+              >
+                <Highlighter className="h-4 w-4" />
+                <div
+                  className="w-3 h-3 rounded-full border border-gray-300 dark:border-gray-600 shadow-sm"
+                  style={{
+                    backgroundColor:
+                      editor.getAttributes("highlight").color || "transparent",
+                  }}
+                />
+              </Button>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => editor.chain().focus().unsetHighlight().run()}
+              title="Reset Highlight Color"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          </div>
+
           <div className="flex items-center gap-1 border-r pr-1 mr-1">
             <Button
               variant={editor.isActive("bold") ? "secondary" : "ghost"}
@@ -103,6 +242,15 @@ export function EditorToolbar({ editor, saveStatus }: EditorToolbarProps) {
               title="Italic"
             >
               <Italic className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={editor.isActive("underline") ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => editor.chain().focus().toggleUnderline().run()}
+              disabled={!editor.can().chain().focus().toggleUnderline().run()}
+              title="Underline"
+            >
+              <UnderlineIcon className="h-4 w-4" />
             </Button>
             <Button
               variant={editor.isActive("strike") ? "secondary" : "ghost"}
@@ -126,6 +274,102 @@ export function EditorToolbar({ editor, saveStatus }: EditorToolbarProps) {
 
           <div className="flex items-center gap-1 border-r pr-1 mr-1">
             <Button
+              variant={
+                editor.isActive({ textAlign: "left" }) ? "secondary" : "ghost"
+              }
+              size="sm"
+              onClick={() => editor.chain().focus().setTextAlign("left").run()}
+              title="Align Left"
+            >
+              <AlignLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={
+                editor.isActive({ textAlign: "center" }) ? "secondary" : "ghost"
+              }
+              size="sm"
+              onClick={() =>
+                editor.chain().focus().setTextAlign("center").run()
+              }
+              title="Align Center"
+            >
+              <AlignCenter className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={
+                editor.isActive({ textAlign: "right" }) ? "secondary" : "ghost"
+              }
+              size="sm"
+              onClick={() => editor.chain().focus().setTextAlign("right").run()}
+              title="Align Right"
+            >
+              <AlignRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={
+                editor.isActive({ textAlign: "justify" })
+                  ? "secondary"
+                  : "ghost"
+              }
+              size="sm"
+              onClick={() =>
+                editor.chain().focus().setTextAlign("justify").run()
+              }
+              title="Justify"
+            >
+              <AlignJustify className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-1 border-r pr-1 mr-1">
+            <Button
+              variant={
+                editor.isActive("heading", { level: 1 }) ? "secondary" : "ghost"
+              }
+              size="sm"
+              onClick={() =>
+                editor.chain().focus().toggleHeading({ level: 1 }).run()
+              }
+              title="Heading 1"
+            >
+              <Heading1 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={
+                editor.isActive("heading", { level: 2 }) ? "secondary" : "ghost"
+              }
+              size="sm"
+              onClick={() =>
+                editor.chain().focus().toggleHeading({ level: 2 }).run()
+              }
+              title="Heading 2"
+            >
+              <Heading2 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={
+                editor.isActive("heading", { level: 3 }) ? "secondary" : "ghost"
+              }
+              size="sm"
+              onClick={() =>
+                editor.chain().focus().toggleHeading({ level: 3 }).run()
+              }
+              title="Heading 3"
+            >
+              <Heading3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={editor.isActive("blockquote") ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => editor.chain().focus().toggleBlockquote().run()}
+              title="Blockquote"
+            >
+              <Quote className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-1 border-r pr-1 mr-1">
+            <Button
               variant={editor.isActive("bulletList") ? "secondary" : "ghost"}
               size="sm"
               onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -142,13 +386,51 @@ export function EditorToolbar({ editor, saveStatus }: EditorToolbarProps) {
               <ListOrdered className="h-4 w-4" />
             </Button>
             <Button
-              variant={editor.isActive("blockquote") ? "secondary" : "ghost"}
+              variant="ghost"
               size="sm"
-              onClick={() => editor.chain().focus().toggleBlockquote().run()}
-              title="Blockquote"
+              onClick={() => (editor.chain().focus() as any).indent().run()}
+              title="Increase Indent"
             >
-              <Quote className="h-4 w-4" />
+              <IndentIncrease className="h-4 w-4" />
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => (editor.chain().focus() as any).outdent().run()}
+              title="Decrease Indent"
+            >
+              <IndentDecrease className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-1 border-r pr-1 mr-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger className="inline-flex items-center justify-between whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 w-[90px]">
+                <span className="truncate">
+                  {editor.getAttributes("paragraph")?.lineHeight ||
+                    editor.getAttributes("heading")?.lineHeight ||
+                    "Default"}
+                </span>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem
+                  onClick={() => editor.chain().focus().unsetLineHeight().run()}
+                >
+                  Default
+                </DropdownMenuItem>
+                {LINE_HEIGHTS.map((lh) => (
+                  <DropdownMenuItem
+                    key={lh}
+                    onClick={() =>
+                      editor.chain().focus().setLineHeight(lh).run()
+                    }
+                  >
+                    {lh}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <div className="flex items-center gap-1">
@@ -171,19 +453,6 @@ export function EditorToolbar({ editor, saveStatus }: EditorToolbarProps) {
               <Redo className="h-4 w-4" />
             </Button>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {saveStatus === "saving" && (
-            <div className="text-xs text-muted-foreground bg-muted/80 px-2 py-1 rounded">
-              Saving...
-            </div>
-          )}
-          {saveStatus === "saved" && (
-            <div className="text-xs text-success bg-success/20 px-2 py-1 rounded">
-              Saved
-            </div>
-          )}
-          <Button>Save</Button>
         </div>
       </div>
     </div>

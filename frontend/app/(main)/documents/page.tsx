@@ -15,21 +15,30 @@ import { getAuthToken } from "@/lib/actions/authActions";
  */
 export default function DocumentPage() {
   const queryClient = useQueryClient();
-  
-  const { data: documents = [], isLoading, error, refetch } = useQuery({
+
+  const {
+    data: documents = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ["documents"],
     queryFn: async () => {
       const token = await getAuthToken();
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/documents`, {
-        headers: {
-          Authorization: token ? `Bearer ${token}` : ""
-        }
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/documents`,
+        {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+        },
+      );
       if (!res.ok) {
         throw new Error("Failed to load documents");
       }
       return res.json();
     },
+    gcTime: 0,
   });
 
   const handleUploadSuccess = () => {
@@ -50,7 +59,9 @@ export default function DocumentPage() {
 
       <div className="flex flex-col gap-6 py-6">
         <div className="flex items-center justify-between border-b pb-4">
-          <h2 className="text-xl font-semibold tracking-tight">Your Document Files</h2>
+          <h2 className="text-xl font-semibold tracking-tight">
+            Your Document Files
+          </h2>
           <Button
             variant="outline"
             size="sm"
@@ -58,23 +69,31 @@ export default function DocumentPage() {
             disabled={isLoading}
             className="flex items-center gap-2"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
         </div>
 
         {error && (
           <div className="rounded-lg bg-destructive/10 p-4 text-sm text-destructive">
-            {error instanceof Error ? error.message : "Failed to load documents"}
+            {error instanceof Error
+              ? error.message
+              : "Failed to load documents"}
           </div>
         )}
 
         {/* Map DB document objects to match expected props if necessary, or update DocumentCard */}
-        <DocumentGrid documents={documents.map((d: any) => ({
-          ...d,
-          name: `${d.id}-${d.title}`, // simulate storage filename format for DocumentCard compatibility if needed, though we updated DocumentCard to use document.id as fallback
-          metadata: { size: 0 }, // fake size
-        }))} isLoading={isLoading} onDeleteSuccess={handleDeleteSuccess} />
+        <DocumentGrid
+          documents={documents.map((d: any) => ({
+            ...d,
+            name: `${d.id}-${d.title}`, // simulate storage filename format for DocumentCard compatibility if needed, though we updated DocumentCard to use document.id as fallback
+            metadata: { size: 0 }, // fake size
+          }))}
+          isLoading={isLoading}
+          onDeleteSuccess={handleDeleteSuccess}
+        />
       </div>
     </>
   );

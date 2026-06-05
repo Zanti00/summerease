@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Text, BigInteger, DateTime, ForeignKey
+from sqlalchemy import Column, String, Text, BigInteger, DateTime, ForeignKey, Boolean
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from v1.app.core.database import Base
@@ -16,6 +16,7 @@ class Document(Base):
     content_html = Column(Text, nullable=True)
     file_type = Column(String(255), nullable=True)
     file_size = Column(BigInteger, nullable=True)
+    is_autosave_enabled = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     deleted_at = Column(DateTime, nullable=True)

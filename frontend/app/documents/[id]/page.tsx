@@ -9,10 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Chatbox } from "@/components/chatbox";
 
 import { getAuthToken } from "@/lib/actions/authActions";
+import { useQueryClient } from "@tanstack/react-query";
+import { fetchDocuments } from "@/hooks/use-documents";
 
 export default function DocumentEditorPage() {
   const params = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const documentId = params.id as string;
 
   const {
@@ -36,6 +39,7 @@ export default function DocumentEditorPage() {
       }
       return res.json();
     },
+    gcTime: 0,
   });
 
   if (isLoading) {
@@ -67,17 +71,27 @@ export default function DocumentEditorPage() {
   // If `content` (JSON schema) is null but `content_html` is present (from initial parsing), we pass `content_html`.
   const initialContent = document.content || document.content_html || "";
 
+  const handleBack = async () => {
+    await queryClient.fetchQuery({
+      queryKey: ["documents"],
+      queryFn: fetchDocuments,
+    });
+    router.refresh();
+    router.back();
+  };
+
   return (
     <div className="container mx-auto p-6 max-w-350 space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+          <Button variant="ghost" size="icon" onClick={handleBack}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             {document.title}
           </h1>
         </div>
+        <div id="editor-header-actions" />
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 items-start">
@@ -85,6 +99,7 @@ export default function DocumentEditorPage() {
           <RichTextEditor
             documentId={documentId}
             initialContent={initialContent}
+            initialAutoSave={document.is_autosave_enabled}
           />
         </div>
         <div className="w-full lg:w-1/3 shrink-0 sticky top-6">

@@ -1,5 +1,5 @@
 import os
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any, Dict
 from redis import Redis
@@ -92,6 +92,7 @@ async def get_document(
         "title": document.title,
         "content": document.content,
         "content_html": document.content_html,
+        "is_autosave_enabled": document.is_autosave_enabled,
         "updated_at": document.updated_at
     }
 
@@ -99,6 +100,7 @@ async def get_document(
 async def autosave_document(
     doc_id: str,
     payload: Dict[str, Any],
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
@@ -113,14 +115,23 @@ async def autosave_document(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    # Enqueue to RQ
+    # Enqueue to RQ or fallback to FastAPI background tasks
     content = payload.get("content", {})
-    autosave_queue.enqueue(
-        "worker.save_document_task",
-        doc_id,
-        content,
-        str(user_id)
-    )
+    content_html = payload.get("content_html", "")
+    is_autosave_enabled = payload.get("is_autosave_enabled", None)
+    try:
+        autosave_queue.enqueue(
+            "worker.save_document_task",
+            doc_id,
+            content,
+            content_html,
+            str(user_id),
+            is_autosave_enabled
+        )
+    except Exception as e:
+        print(f"Redis enqueue failed ({e}), falling back to FastAPI BackgroundTasks")
+        from worker import async_save_document
+        background_tasks.add_task(async_save_document, doc_id, content, content_html, str(user_id), is_autosave_enabled)
     
     return {"status": "queued"}
 
