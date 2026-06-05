@@ -8,6 +8,7 @@ interface User {
   email: string;
   username?: string;
   mfa_enabled?: boolean;
+  google_id?: string | null;
 }
 
 interface AuthContextType {

@@ -4,57 +4,33 @@ import { PageHeader } from "@/components/page-header";
 import { DocumentGrid } from "@/components/document-grid";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useDocuments, useRefreshDocuments } from "@/hooks/use-documents";
 
-import { getAuthToken } from "@/lib/actions/authActions";
+interface DbDocument {
+  id: string;
+  title: string;
+  original_file_url?: string;
+  created_at?: string;
+  updated_at?: string;
+}
 
-/**
- * Documents page component.
- * Displays all files uploaded to the 'documents' storage bucket in a grid container.
- * Uses the reusable DocumentGrid component to handle loading, empty, and file card listing views.
- */
 export default function DocumentPage() {
-  const queryClient = useQueryClient();
-
   const {
     data: documents = [],
     isLoading,
+    isFetching,
     error,
     refetch,
-  } = useQuery({
-    queryKey: ["documents"],
-    queryFn: async () => {
-      const token = await getAuthToken();
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/documents`,
-        {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : "",
-          },
-        },
-      );
-      if (!res.ok) {
-        throw new Error("Failed to load documents");
-      }
-      return res.json();
-    },
-    gcTime: 0,
-  });
+  } = useDocuments();
 
-  const handleUploadSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ["documents"] });
-  };
-
-  const handleDeleteSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ["documents"] });
-  };
+  const refreshDocuments = useRefreshDocuments();
 
   return (
     <>
       <PageHeader
         title="Documents"
         subtitle="Manage your files and view recently uploaded documents"
-        onUploadSuccess={handleUploadSuccess}
+        onUploadSuccess={refreshDocuments}
       />
 
       <div className="flex flex-col gap-6 py-6">
@@ -66,11 +42,11 @@ export default function DocumentPage() {
             variant="outline"
             size="sm"
             onClick={() => refetch()}
-            disabled={isLoading}
+            disabled={isLoading || isFetching}
             className="flex items-center gap-2"
           >
             <RefreshCw
-              className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+              className={`h-4 w-4 ${isLoading || isFetching ? "animate-spin" : ""}`}
             />
             Refresh
           </Button>
@@ -86,13 +62,15 @@ export default function DocumentPage() {
 
         {/* Map DB document objects to match expected props if necessary, or update DocumentCard */}
         <DocumentGrid
-          documents={documents.map((d: any) => ({
-            ...d,
-            name: `${d.id}-${d.title}`, // simulate storage filename format for DocumentCard compatibility if needed, though we updated DocumentCard to use document.id as fallback
-            metadata: { size: 0 }, // fake size
+          documents={(documents as DbDocument[]).map((d: DbDocument) => ({
+            id: d.id,
+            name: `${d.id}-${d.title}`,
+            created_at: d.created_at || new Date().toISOString(),
+            updated_at: d.updated_at || new Date().toISOString(),
+            metadata: { size: 0, mimetype: "" },
           }))}
-          isLoading={isLoading}
-          onDeleteSuccess={handleDeleteSuccess}
+          isLoading={isLoading || isFetching}
+          onDeleteSuccess={refreshDocuments}
         />
       </div>
     </>

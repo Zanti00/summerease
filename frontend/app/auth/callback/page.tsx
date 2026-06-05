@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { setAuthCookie } from "@/lib/actions/authActions";
+import { setAuthCookie, getCurrentUser } from "@/lib/actions/authActions";
 import { ROUTES } from "@/app/constants/routes";
 import AuthLayout from "@/app/(auth)/layout";
 import { Loader2 } from "lucide-react";
@@ -26,9 +26,13 @@ function AuthCallbackForm() {
         try {
           await setAuthCookie(token);
 
-          // Update global auth state
-          // In a real scenario, you'd decode the token or fetch /me here
-          setAuth({ id: "oauth", email: "checking..." });
+          // Fetch the actual user profile to update context with real details (like google_id)
+          const userResult = await getCurrentUser();
+          if (userResult.success && userResult.data?.user) {
+            setAuth(userResult.data.user);
+          } else {
+            setAuth({ id: "oauth", email: "checking..." });
+          }
 
           setTimeout(() => {
             router.push(`${ROUTES.documents.root}?login=success`);

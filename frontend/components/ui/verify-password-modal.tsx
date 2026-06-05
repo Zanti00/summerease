@@ -18,10 +18,11 @@ import { toast } from "sonner";
 interface VerifyPasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (password: string) => Promise<void>;
+  onConfirm: (passwordOrEmail: string) => Promise<void>;
   title?: string;
   description?: string;
   isLoading?: boolean;
+  isOAuth?: boolean;
 }
 
 export function VerifyPasswordModal({
@@ -31,22 +32,25 @@ export function VerifyPasswordModal({
   title = "Verify Password",
   description = "Please enter your password to confirm this action.",
   isLoading = false,
+  isOAuth = false,
 }: VerifyPasswordModalProps) {
-  const [password, setPassword] = useState("");
+  const [inputValue, setInputValue] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!password) {
-      toast.error("Password is required.");
+    if (!inputValue) {
+      toast.error(isOAuth ? "Email is required." : "Password is required.");
       return;
     }
     try {
-      await onConfirm(password);
-      setPassword(""); // Clear password on success
+      await onConfirm(inputValue);
+      setInputValue(""); // Clear input on success
     } catch (err) {
       toast.error(
         err instanceof Error
           ? err.message
+          : isOAuth
+          ? "Verification failed. Please check your email."
           : "Verification failed. Please check your password.",
       );
     }
@@ -54,27 +58,31 @@ export function VerifyPasswordModal({
 
   const handleOpenChange = (open: boolean) => {
     if (!open && !isLoading) {
-      setPassword("");
+      setInputValue("");
       onClose();
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-106.25">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle>{isOAuth ? "Confirm Deletion" : title}</DialogTitle>
+          <DialogDescription>
+            {isOAuth
+              ? "Please enter your email address to confirm this action."
+              : description}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="input-value">{isOAuth ? "Email Address" : "Password"}</Label>
             <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
+              id="input-value"
+              type={isOAuth ? "email" : "password"}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder={isOAuth ? "Enter your email address" : "Enter your password"}
               autoFocus
               disabled={isLoading}
             />
@@ -91,7 +99,7 @@ export function VerifyPasswordModal({
             <Button
               type="submit"
               variant={"destructive"}
-              disabled={isLoading || !password}
+              disabled={isLoading || !inputValue}
             >
               {isLoading ? (
                 <>

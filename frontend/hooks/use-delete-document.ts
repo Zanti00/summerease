@@ -3,6 +3,7 @@ import { getAuthToken } from "@/lib/actions/authActions";
 import { API_BASE_URL } from "@/lib/apiConfig";
 import { deleteFileFromBucket } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useAuth } from "@/components/providers/auth-provider";
 
 interface UseDeleteDocumentOptions {
   onSuccess?: () => void;
@@ -13,6 +14,8 @@ export function useDeleteDocument(options?: UseDeleteDocumentOptions) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<{ id: string; name: string; bucket?: string } | null>(null);
+  const { user } = useAuth();
+  const isOAuth = !!user?.google_id;
 
   const initiateDelete = (id: string, name: string, bucket = "documents") => {
     setDocumentToDelete({ id, name, bucket });
@@ -24,7 +27,7 @@ export function useDeleteDocument(options?: UseDeleteDocumentOptions) {
     setDocumentToDelete(null);
   };
 
-  const handleConfirmDelete = async (password: string) => {
+  const handleConfirmDelete = async (passwordOrEmail: string) => {
     if (!documentToDelete) return;
     setIsDeleting(true);
 
@@ -32,24 +35,30 @@ export function useDeleteDocument(options?: UseDeleteDocumentOptions) {
       const token = await getAuthToken();
       if (!token) throw new Error("No authentication token found");
 
-      // 1. Verify Password
-      const verifyRes = await fetch(`${API_BASE_URL}/auth/verify-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ password }),
-      });
+      if (isOAuth) {
+        // Client-side verification for Google OAuth users (no password in DB)
+        if (!user || passwordOrEmail.trim().toLowerCase() !== user.email.toLowerCase()) {
+          throw new Error("Email address does not match your account email.");
+        }
+      } else {
+        // 1. Verify Password
+        const verifyRes = await fetch(`${API_BASE_URL}/auth/verify-password`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ password: passwordOrEmail }),
+        });
 
-      if (!verifyRes.ok) {
-        const errorData = await verifyRes.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Invalid password");
+        if (!verifyRes.ok) {
+          const errorData = await verifyRes.json().catch(() => ({}));
+          throw new Error(errorData.detail || "Invalid password");
+        }
       }
 
       // 2. Attempt to delete from backend (DB)
       // If it exists in DB, backend will also delete it from Supabase storage (if configured)
-      const isDbDoc = documentToDelete.id && !documentToDelete.id.includes(":"); // Rough check, assuming DB id is UUID and storage id might be different, but backend handles 404
       
       let backendDeleteSuccess = false;
       const deleteRes = await fetch(`${API_BASE_URL}/documents/${documentToDelete.id}`, {
@@ -101,6 +110,7 @@ export function useDeleteDocument(options?: UseDeleteDocumentOptions) {
     initiateDelete,
     isDeleting,
     isModalOpen,
+    isOAuth,
     handleCloseModal,
     handleConfirmDelete,
   };

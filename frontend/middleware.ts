@@ -29,7 +29,10 @@ async function verifyToken(token: string) {
 }
 
 export async function middleware(request: NextRequest) {
-
+  // Bypass middleware logic for Server Actions to prevent Next.js redirection errors on client
+  if (request.headers.has("next-action")) {
+    return NextResponse.next();
+  }
 
   // Removed forced redirection from localhost to 127.0.0.1 to allow both hosts.
 

@@ -10,9 +10,8 @@ import { FileText, Download, Calendar } from "lucide-react";
 import { getPublicUrl, type SupabaseFile } from "@/lib/supabase";
 import { formatBytes, formatDate, cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { useDeleteDocument } from "@/hooks/use-delete-document";
-import { VerifyPasswordModal } from "@/components/ui/verify-password-modal";
 import { Trash2 } from "lucide-react";
+import { DeleteDocumentTrigger } from "@/components/delete-document-trigger";
 
 /**
  * Props for the DocumentCard component.
@@ -46,7 +45,8 @@ export function DocumentCard({
   onDeleteSuccess,
 }: DocumentCardProps) {
   const router = useRouter();
-  const publicUrl = document.original_file_url || getPublicUrl(document.name, bucketName);
+  const publicUrl =
+    document.original_file_url || getPublicUrl(document.name, bucketName);
 
   // document.name might be uuid-filename or just filename. Since our new flow uses DB documents, we should probably change this later to support the DB document type.
   // For now, extract the uuid part if it exists (assuming it starts with UUID).
@@ -55,16 +55,6 @@ export function DocumentCard({
 
   const displayName = document.name.replace(/^[a-f0-9-]{36}-/, "");
 
-  const {
-    initiateDelete,
-    isDeleting,
-    isModalOpen,
-    handleCloseModal,
-    handleConfirmDelete,
-  } = useDeleteDocument({
-    onSuccess: onDeleteSuccess,
-  });
-
   return (
     <>
       <Card
@@ -72,20 +62,28 @@ export function DocumentCard({
         className="group hover:cursor-pointer relative overflow-hidden transition-all duration-300 hover:shadow-md hover:border-primary/30 bg-secondary/20 border-border"
       >
         <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex justify-between">
             <div className="rounded-lg bg-muted p-2.5 text-muted-foreground transition-transform duration-300">
               <FileText className="h-6 w-6" />
             </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                initiateDelete(docId, document.name, bucketName);
-              }}
-              className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-              title="Delete Document"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+            <div className="flex">
+              <DeleteDocumentTrigger
+                documentId={docId}
+                documentName={document.name}
+                bucketName={bucketName}
+                onSuccess={onDeleteSuccess}
+              >
+                {({ onClick }) => (
+                  <button
+                    onClick={onClick}
+                    className="p-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                    title="Delete Document"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </DeleteDocumentTrigger>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="pb-3">
@@ -121,15 +119,6 @@ export function DocumentCard({
           </a>
         </CardFooter>
       </Card>
-
-      <VerifyPasswordModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onConfirm={handleConfirmDelete}
-        isLoading={isDeleting}
-        title="Delete Document"
-        description={`Are you sure you want to delete "${displayName}"? This action cannot be undone.`}
-      />
     </>
   );
 }

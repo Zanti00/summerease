@@ -92,6 +92,7 @@ async def get_document(
         "title": document.title,
         "content": document.content,
         "content_html": document.content_html,
+        "original_file_url": document.original_file_url,
         "is_autosave_enabled": document.is_autosave_enabled,
         "updated_at": document.updated_at
     }
@@ -119,6 +120,7 @@ async def autosave_document(
     content = payload.get("content", {})
     content_html = payload.get("content_html", "")
     is_autosave_enabled = payload.get("is_autosave_enabled", None)
+    title = payload.get("title", None)
     try:
         autosave_queue.enqueue(
             "worker.save_document_task",
@@ -126,12 +128,13 @@ async def autosave_document(
             content,
             content_html,
             str(user_id),
-            is_autosave_enabled
+            is_autosave_enabled,
+            title
         )
     except Exception as e:
         print(f"Redis enqueue failed ({e}), falling back to FastAPI BackgroundTasks")
         from worker import async_save_document
-        background_tasks.add_task(async_save_document, doc_id, content, content_html, str(user_id), is_autosave_enabled)
+        background_tasks.add_task(async_save_document, doc_id, content, content_html, str(user_id), is_autosave_enabled, title)
     
     return {"status": "queued"}
 
@@ -148,10 +151,6 @@ async def delete_document(
         raise HTTPException(status_code=401, detail=f"User ID missing in payload: {current_user}")
         
     doc = await service.delete_document(db, doc_id, str(user_id))
-    if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
-        
-    return {"status": "deleted"}
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
         

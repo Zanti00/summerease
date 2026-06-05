@@ -32,13 +32,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 interface EditorToolbarProps {
   editor: Editor | null;
 }
 
 const FONT_FAMILIES = [
-  { name: "Inter", value: "Inter" },
   { name: "Comic Sans", value: "Comic Sans MS, Comic Sans" },
   { name: "Serif", value: "serif" },
   { name: "Monospace", value: "monospace" },
@@ -46,11 +46,9 @@ const FONT_FAMILIES = [
 ];
 
 const FONT_SIZES = ["12px", "14px", "16px", "18px", "24px", "32px"];
-const LINE_HEIGHTS = ["1", "1.15", "1.5", "2", "2.5", "3"];
+const LINE_HEIGHTS = ["1", "1.15", "normal", "1.5", "2", "2.5", "3"];
 
-export function EditorToolbar({
-  editor,
-}: EditorToolbarProps) {
+export function EditorToolbar({ editor }: EditorToolbarProps) {
   const [, forceUpdate] = useState({});
 
   useEffect(() => {
@@ -85,54 +83,79 @@ export function EditorToolbar({
                 {FONT_FAMILIES.find(
                   (f) =>
                     f.value === editor.getAttributes("textStyle").fontFamily,
-                )?.name || "Default"}
+                )?.name || "Inter"}
               </span>
               <ChevronDown className="h-4 w-4 opacity-50" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem
-                onClick={() => editor.chain().focus().unsetFontFamily().run()}
-              >
-                Default
-              </DropdownMenuItem>
-              {FONT_FAMILIES.map((font) => (
-                <DropdownMenuItem
-                  key={font.name}
-                  onClick={() =>
-                    editor.chain().focus().setFontFamily(font.value).run()
-                  }
-                  style={{ fontFamily: font.value }}
-                >
-                  {font.name}
-                </DropdownMenuItem>
-              ))}
+             <DropdownMenuContent>
+              {(() => {
+                const currentFont = editor.getAttributes("textStyle").fontFamily;
+                const isInterSelected = !currentFont || currentFont === "Inter";
+                return (
+                  <>
+                    <DropdownMenuItem
+                      onClick={() => editor.chain().focus().unsetFontFamily().run()}
+                      className={cn(
+                        isInterSelected && "bg-accent/50 font-semibold text-accent-foreground"
+                      )}
+                    >
+                      Inter
+                    </DropdownMenuItem>
+                    {FONT_FAMILIES.map((font) => {
+                      const isSelected = currentFont === font.value;
+                      return (
+                        <DropdownMenuItem
+                          key={font.name}
+                          onClick={() =>
+                            editor.chain().focus().setFontFamily(font.value).run()
+                          }
+                          style={{ fontFamily: font.value }}
+                          className={cn(
+                            isSelected && "bg-accent/50 font-semibold text-accent-foreground"
+                          )}
+                        >
+                          {font.name}
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </>
+                );
+              })()}
             </DropdownMenuContent>
           </DropdownMenu>
 
           {/* Font Size */}
           <DropdownMenu>
             <DropdownMenuTrigger className="inline-flex items-center justify-between whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 w-[70px]">
-              <span>
+              <span className="truncate">
                 {editor
                   .getAttributes("textStyle")
-                  .fontSize?.replace("px", "") || "Default"}
+                  .fontSize?.replace("px", "") || "16"}
               </span>
               <ChevronDown className="h-4 w-4 opacity-50" />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem
-                onClick={() => editor.chain().focus().unsetFontSize().run()}
-              >
-                Default
-              </DropdownMenuItem>
-              {FONT_SIZES.map((size) => (
-                <DropdownMenuItem
-                  key={size}
-                  onClick={() => editor.chain().focus().setFontSize(size).run()}
-                >
-                  {size}
-                </DropdownMenuItem>
-              ))}
+              {(() => {
+                const currentSize = editor.getAttributes("textStyle").fontSize || "16px";
+                return FONT_SIZES.map((size) => {
+                  const isSelected = currentSize === size;
+                  return (
+                    <DropdownMenuItem
+                      key={size}
+                      onClick={() =>
+                        size === "16px"
+                          ? editor.chain().focus().unsetFontSize().run()
+                          : editor.chain().focus().setFontSize(size).run()
+                      }
+                      className={cn(
+                        isSelected && "bg-accent/50 font-semibold text-accent-foreground"
+                      )}
+                    >
+                      {size}
+                    </DropdownMenuItem>
+                  );
+                });
+              })()}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -388,7 +411,15 @@ export function EditorToolbar({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => (editor.chain().focus() as any).indent().run()}
+              onClick={() =>
+                (
+                  editor.chain().focus() as unknown as {
+                    indent: () => { run: () => boolean };
+                  }
+                )
+                  .indent()
+                  .run()
+              }
               title="Increase Indent"
             >
               <IndentIncrease className="h-4 w-4" />
@@ -396,7 +427,15 @@ export function EditorToolbar({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => (editor.chain().focus() as any).outdent().run()}
+              onClick={() =>
+                (
+                  editor.chain().focus() as unknown as {
+                    outdent: () => { run: () => boolean };
+                  }
+                )
+                  .outdent()
+                  .run()
+              }
               title="Decrease Indent"
             >
               <IndentDecrease className="h-4 w-4" />
@@ -405,30 +444,42 @@ export function EditorToolbar({
 
           <div className="flex items-center gap-1 border-r pr-1 mr-1">
             <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex items-center justify-between whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 w-[90px]">
+              <DropdownMenuTrigger className="inline-flex items-center justify-between whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 w-22.5">
                 <span className="truncate">
-                  {editor.getAttributes("paragraph")?.lineHeight ||
-                    editor.getAttributes("heading")?.lineHeight ||
-                    "Default"}
+                  {(() => {
+                    const lh =
+                      editor.getAttributes("paragraph")?.lineHeight ||
+                      editor.getAttributes("heading")?.lineHeight;
+                    return lh === "normal" || !lh ? "normal" : lh;
+                  })()}
                 </span>
                 <ChevronDown className="h-4 w-4 opacity-50" />
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem
-                  onClick={() => editor.chain().focus().unsetLineHeight().run()}
-                >
-                  Default
-                </DropdownMenuItem>
-                {LINE_HEIGHTS.map((lh) => (
-                  <DropdownMenuItem
-                    key={lh}
-                    onClick={() =>
-                      editor.chain().focus().setLineHeight(lh).run()
-                    }
-                  >
-                    {lh}
-                  </DropdownMenuItem>
-                ))}
+                {(() => {
+                  const rawLh =
+                    editor.getAttributes("paragraph")?.lineHeight ||
+                    editor.getAttributes("heading")?.lineHeight;
+                  const currentLh = rawLh === "normal" || !rawLh ? "normal" : rawLh;
+                  return LINE_HEIGHTS.map((lh) => {
+                    const isSelected = currentLh === lh;
+                    return (
+                      <DropdownMenuItem
+                        key={lh}
+                        onClick={() =>
+                          lh === "normal"
+                            ? editor.chain().focus().unsetLineHeight().run()
+                            : editor.chain().focus().setLineHeight(lh).run()
+                        }
+                        className={cn(
+                          isSelected && "bg-accent/50 font-semibold text-accent-foreground"
+                        )}
+                      >
+                        {lh}
+                      </DropdownMenuItem>
+                    );
+                  });
+                })()}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
