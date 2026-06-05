@@ -12,24 +12,32 @@ import { getAuthToken } from "@/lib/actions/authActions";
 
 interface RichTextEditorProps {
   documentId: string;
-  initialContent: Record<string, any> | string;
+  initialContent: Record<string, unknown> | string;
 }
 
-export function RichTextEditor({ documentId, initialContent }: RichTextEditorProps) {
-  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
+export function RichTextEditor({
+  documentId,
+  initialContent,
+}: RichTextEditorProps) {
+  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">(
+    "saved",
+  );
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const saveMutation = useMutation({
-    mutationFn: async (content: Record<string, any>) => {
+    mutationFn: async (content: Record<string, unknown>) => {
       const token = await getAuthToken();
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/documents/${documentId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : ""
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/documents/${documentId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+          body: JSON.stringify({ content }),
         },
-        body: JSON.stringify({ content }),
-      });
+      );
       if (!res.ok) {
         throw new Error("Failed to autosave");
       }
@@ -45,20 +53,17 @@ export function RichTextEditor({ documentId, initialContent }: RichTextEditorPro
   });
 
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      TextStyle,
-      Color,
-    ],
+    extensions: [StarterKit, TextStyle, Color],
     content: initialContent,
     editorProps: {
       attributes: {
-        class: "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none p-4 min-h-[500px]",
+        class:
+          "prose prose-invert prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none p-4 min-h-[500px]",
       },
     },
     onUpdate: ({ editor }) => {
       setSaveStatus("unsaved");
-      
+
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
@@ -80,19 +85,9 @@ export function RichTextEditor({ documentId, initialContent }: RichTextEditorPro
   }, []);
 
   return (
-    <div className="flex flex-col border rounded-md shadow-sm bg-white overflow-hidden">
-      <EditorToolbar editor={editor} />
+    <div className="flex flex-col border rounded-md shadow-sm bg-card overflow-hidden">
+      <EditorToolbar editor={editor} saveStatus={saveStatus} />
       <div className="relative">
-        {saveStatus === "saving" && (
-          <div className="absolute top-2 right-4 text-xs text-slate-400 bg-slate-50/80 px-2 py-1 rounded">
-            Saving...
-          </div>
-        )}
-        {saveStatus === "saved" && (
-          <div className="absolute top-2 right-4 text-xs text-green-500 bg-green-50/80 px-2 py-1 rounded">
-            Saved
-          </div>
-        )}
         <EditorContent editor={editor} className="min-h-[500px]" />
       </div>
     </div>

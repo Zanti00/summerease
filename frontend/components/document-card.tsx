@@ -21,7 +21,7 @@ interface DocumentCardProps {
   /**
    * The file metadata from Supabase Storage.
    */
-  document: SupabaseFile;
+  document: SupabaseFile & { original_file_url?: string };
   /**
    * The Supabase Storage bucket name (defaults to "documents").
    */
@@ -46,8 +46,8 @@ export function DocumentCard({
   onDeleteSuccess,
 }: DocumentCardProps) {
   const router = useRouter();
-  const publicUrl = getPublicUrl(document.name, bucketName);
-  
+  const publicUrl = document.original_file_url || getPublicUrl(document.name, bucketName);
+
   // document.name might be uuid-filename or just filename. Since our new flow uses DB documents, we should probably change this later to support the DB document type.
   // For now, extract the uuid part if it exists (assuming it starts with UUID).
   const docIdMatch = document.name.match(/^[a-f0-9-]{36}/);
@@ -67,61 +67,61 @@ export function DocumentCard({
 
   return (
     <>
-      <Card 
+      <Card
         onClick={() => router.push(`/documents/${docId}`)}
-        className="group hover:cursor-pointer relative overflow-hidden transition-all duration-300 hover:shadow-md hover:border-primary/30 bg-white"
+        className="group hover:cursor-pointer relative overflow-hidden transition-all duration-300 hover:shadow-md hover:border-primary/30 bg-secondary/20 border-border"
       >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="rounded-lg bg-slate-100 p-2.5 text-slate-600 transition-transform duration-300">
-            <FileText className="h-6 w-6" />
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="rounded-lg bg-muted p-2.5 text-muted-foreground transition-transform duration-300">
+              <FileText className="h-6 w-6" />
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                initiateDelete(docId, document.name, bucketName);
+              }}
+              className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+              title="Delete Document"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              initiateDelete(docId, document.name, bucketName);
-            }}
-            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-            title="Delete Document"
+        </CardHeader>
+        <CardContent className="pb-3">
+          <CardTitle
+            className="line-clamp-2 text-sm font-semibold tracking-tight text-foreground transition-colors duration-200"
+            title={displayName}
           >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-      </CardHeader>
-      <CardContent className="pb-3">
-        <CardTitle
-          className="line-clamp-2 text-sm font-semibold tracking-tight text-slate-800 transition-colors duration-200"
-          title={displayName}
-        >
-          {displayName}
-        </CardTitle>
-        <div className="mt-3 flex flex-col gap-1.5 text-xs text-slate-500">
-          <div className="flex items-center gap-1.5">
-            <Calendar className="h-3.5 w-3.5" />
-            <span>{formatDate(document.created_at)}</span>
+            {displayName}
+          </CardTitle>
+          <div className="mt-3 flex flex-col gap-1.5 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5" />
+              <span>{formatDate(document.created_at)}</span>
+            </div>
+            <div>
+              <span>{formatBytes(document.metadata?.size)}</span>
+            </div>
           </div>
-          <div>
-            <span>{formatBytes(document.metadata?.size)}</span>
-          </div>
-        </div>
-      </CardContent>
-      <CardFooter className="pt-0">
-        <a
-          href={publicUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className={cn(
-            buttonVariants({ variant: "ghost", size: "sm" }),
-            "w-full justify-start text-slate-600 hover:text-primary hover:bg-slate-50 gap-2",
-          )}
-        >
-          <Download className="h-4 w-4" />
-          Download File
-        </a>
-      </CardFooter>
+        </CardContent>
+        <CardFooter className="pt-0">
+          <a
+            href={publicUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "w-full justify-start text-muted-foreground hover:text-foreground hover:bg-muted gap-2",
+            )}
+          >
+            <Download className="h-4 w-4" />
+            Download File
+          </a>
+        </CardFooter>
       </Card>
-      
+
       <VerifyPasswordModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}

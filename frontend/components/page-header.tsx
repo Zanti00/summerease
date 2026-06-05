@@ -42,21 +42,26 @@ export function PageHeader({
 
       try {
         const token = await getAuthToken();
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/documents/upload`, {
-          method: "POST",
-          headers: {
-            Authorization: token ? `Bearer ${token}` : ""
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/documents/upload`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: token ? `Bearer ${token}` : "",
+            },
+            body: formData,
           },
-          body: formData,
-        });
+        );
 
         if (!res.ok) {
           const errText = await res.text();
-          throw new Error(`Failed to upload document: ${res.status} - ${errText}`);
+          throw new Error(
+            `Failed to upload document: ${res.status} - ${errText}`,
+          );
         }
 
-        const data = JSON.parse(await res.text() || "{}");
-        
+        const data = JSON.parse((await res.text()) || "{}");
+
         if (onUploadSuccess) {
           await onUploadSuccess(file, data.file_url);
         }
@@ -84,8 +89,8 @@ export function PageHeader({
           {subtitle && <p className="text-muted-foreground">{subtitle}</p>}
         </div>
         {showUploadButton && (
-          <Button 
-            className={"bg-primary p-5"} 
+          <Button
+            variant={"default"}
             onClick={triggerUpload}
             disabled={isProcessing}
           >
@@ -98,4 +103,3 @@ export function PageHeader({
     </div>
   );
 }
-
