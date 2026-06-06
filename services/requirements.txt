@@ -48,3 +48,4 @@ pgvector>=0.3.6
 pyclamd>=0.4.0
 structlog>=24.1.0
 chardet>=5.2.0
+markdown>=3.6.0

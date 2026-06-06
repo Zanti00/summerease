@@ -300,8 +300,9 @@ export function streamRAGGeneration(
 export function streamRAGGenerationWithTools(
   query: string,
   documentHtml: string | null,
+  selectedHtml: string | null,
   onToken: (token: string) => void,
-  onToolResult: (result: { action: string; new_content_html: string; action_summary: string }) => void,
+  onToolResult: (result: { action: string; new_content_html: string; action_summary: string; target_exact_text?: string }) => void,
   onDone: () => void,
   onError: (error: string) => void,
 ): AbortController {
@@ -316,6 +317,7 @@ export function streamRAGGenerationWithTools(
         body: JSON.stringify({
           query,
           document_content_html: documentHtml,
+          selected_text_html: selectedHtml,
         }),
         signal: controller.signal,
       });

@@ -30,6 +30,7 @@ interface ChatMessage {
     action: string;
     newContentHtml: string;
     actionSummary: string;
+    target_exact_text?: string;
     applied?: boolean;
     dismissed?: boolean;
   };
@@ -74,13 +75,35 @@ export function Chatbox({ className }: ChatboxProps) {
     });
   }, []);
 
-  const { getContentHtml, setContent } = useEditorStore();
+  const { getContentHtml, setContent, getSelectedHtml, replaceSelection, replaceSpecificText, pendingQuery, setPendingQuery } = useEditorStore();
 
   const handleApplyTool = useCallback((index: number) => {
     const msg = messages[index];
     if (msg?.toolResult && !msg.toolResult.applied && !msg.toolResult.dismissed) {
-      const cleanHtml = DOMPurify.sanitize(msg.toolResult.newContentHtml);
-      setContent(cleanHtml);
+      const cleanHtml = DOMPurify.sanitize(msg.toolResult.newContentHtml.trim());
+      
+      if (msg.toolResult.action === "replace_selection") {
+        replaceSelection(cleanHtml);
+        toast.success("Selection replaced successfully");
+      } else if (msg.toolResult.action === "replace_specific_text") {
+        const targetText = msg.toolResult.target_exact_text;
+        if (targetText) {
+          const success = replaceSpecificText(targetText, cleanHtml);
+          if (success) {
+            toast.success("Text replaced successfully");
+          } else {
+            toast.error("Could not find the exact text to replace. The document might have changed.");
+            return; // don't mark as applied
+          }
+        } else {
+          toast.error("Target text missing from tool call");
+          return;
+        }
+      } else {
+        // default: replace entire document
+        setContent(cleanHtml);
+        toast.success("Document updated successfully");
+      }
       
       setMessages((prev) => {
         const updated = [...prev];
@@ -90,9 +113,8 @@ export function Chatbox({ className }: ChatboxProps) {
         };
         return updated;
       });
-      toast.success("Changes applied to document");
     }
-  }, [messages, setContent]);
+  }, [messages, setContent, replaceSelection, replaceSpecificText]);
 
   const handleDismissTool = useCallback((index: number) => {
     const msg = messages[index];
@@ -108,14 +130,26 @@ export function Chatbox({ className }: ChatboxProps) {
     }
   }, [messages]);
 
-  const handleSend = async () => {
-    const query = input.trim();
+  // Use a ref to store the latest handleSend to avoid dependency cycles in useEffect
+  const handleSendRef = useRef<((overrideQuery?: string) => Promise<void>) | undefined>(undefined);
+
+  useEffect(() => {
+    if (pendingQuery && handleSendRef.current) {
+      handleSendRef.current(pendingQuery);
+      setPendingQuery(null);
+    }
+  }, [pendingQuery, setPendingQuery]);
+
+  const handleSend = async (overrideQuery?: string) => {
+    const query = overrideQuery || input.trim();
     if (!query || isGenerating) return;
 
     // Add user message
     const userMsg: ChatMessage = { role: "user", content: query };
     setMessages((prev) => [...prev, userMsg]);
-    setInput("");
+    if (!overrideQuery) {
+      setInput("");
+    }
     setIsGenerating(true);
 
     // Add loading placeholder
@@ -128,11 +162,13 @@ export function Chatbox({ className }: ChatboxProps) {
 
     const docIds = documentId ? [documentId] : null;
     const currentHtml = getContentHtml();
+    const selectedHtml = getSelectedHtml();
 
     if (currentHtml) {
       const controller = streamRAGGenerationWithTools(
         query,
         currentHtml,
+        selectedHtml,
         (token: string) => {
           setMessages((prev) => {
             const updated = [...prev];
@@ -163,6 +199,7 @@ export function Chatbox({ className }: ChatboxProps) {
                   action: toolResult.action,
                   newContentHtml: toolResult.new_content_html,
                   actionSummary: toolResult.action_summary,
+                  target_exact_text: toolResult.target_exact_text,
                 },
               };
             }
@@ -263,6 +300,10 @@ export function Chatbox({ className }: ChatboxProps) {
       abortControllerRef.current = controller;
     }
   };
+
+  useEffect(() => {
+    handleSendRef.current = handleSend;
+  });
 
   return (
     <Card

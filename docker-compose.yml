@@ -82,6 +82,7 @@ services:
       - SUPABASE_URL=https://jmzggeqgwetftsyffcyn.supabase.co
       - SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptemdnZXFnd2V0ZnRzeWZmY3luIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MzExNTYsImV4cCI6MjA5NTIwNzE1Nn0.pXp0fTYeWn9sAPJb-3g7CJdwYYEmtgE07E60lJF1WTQ
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GEMINI_TOOL_MODEL=gemini-2.5-flash
       - EMBEDDING_MODEL=gemini-embedding-2
       - REDIS_URL=redis://redis:6379
       - OLLAMA_BASE_URL=http://ollama:11434

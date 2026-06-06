@@ -341,6 +341,7 @@ async def generate_with_tools(
             async for event in gen_service.generate_with_tools_stream(
                 query=request.query,
                 document_html=request.document_content_html or "",
+                selected_html=request.selected_text_html,
             ):
                 yield f"data: {json.dumps(event)}\n\n"
             yield "data: [DONE]\n\n"

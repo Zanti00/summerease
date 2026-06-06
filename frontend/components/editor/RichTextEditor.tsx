@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
@@ -29,6 +30,9 @@ import { API_BASE_URL } from "@/lib/apiConfig";
 import { createPortal } from "react-dom";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Sparkles } from "lucide-react";
 
 interface RichTextEditorProps {
   documentId: string;
@@ -48,9 +52,9 @@ export function RichTextEditor({
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const [saveStatus, setSaveStatus] = useState<"unmodified" | "saved" | "saving" | "unsaved">(
-    "unmodified",
-  );
+  const [saveStatus, setSaveStatus] = useState<
+    "unmodified" | "saved" | "saving" | "unsaved"
+  >("unmodified");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(initialAutoSave);
   const autoSaveRef = useRef(isAutoSaveEnabled);
@@ -58,6 +62,7 @@ export function RichTextEditor({
   const [title, setTitle] = useState(documentTitle || "");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState(documentTitle || "");
+  const [bubbleInput, setBubbleInput] = useState("");
 
   useEffect(() => {
     if (documentTitle) {
@@ -165,17 +170,19 @@ export function RichTextEditor({
       title?: string;
     }) => {
       const token = await getAuthToken();
-      const res = await fetch(
-        `${API_BASE_URL}/documents/${documentId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : "",
-          },
-          body: JSON.stringify({ content, content_html, is_autosave_enabled, title }),
+      const res = await fetch(`${API_BASE_URL}/documents/${documentId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
         },
-      );
+        body: JSON.stringify({
+          content,
+          content_html,
+          is_autosave_enabled,
+          title,
+        }),
+      });
       if (!res.ok) {
         throw new Error("Failed to autosave");
       }
@@ -224,8 +231,24 @@ export function RichTextEditor({
       if (autoSaveRef.current) {
         saveTimeoutRef.current = setTimeout(() => {
           setSaveStatus("saving");
-          saveMutation.mutate({ content: editor.getJSON(), content_html: editor.getHTML() });
+          saveMutation.mutate({
+            content: editor.getJSON(),
+            content_html: editor.getHTML(),
+          });
         }, 2000); // 2 second debounce
+      }
+    },
+    onSelectionUpdate: ({ editor }) => {
+      const { setLastSelectedHtml, setLastSelectionRange } =
+        useEditorStore.getState();
+      if (!editor.state.selection.empty) {
+        const { from, to } = editor.state.selection;
+        const html = editor.state.doc.textBetween(from, to, "\n");
+        setLastSelectedHtml(html);
+        setLastSelectionRange({ from, to });
+      } else {
+        setLastSelectedHtml(null);
+        setLastSelectionRange(null);
       }
     },
   });
@@ -233,11 +256,22 @@ export function RichTextEditor({
   const handleSave = () => {
     if (editor) {
       setSaveStatus("saving");
-      saveMutation.mutate({ content: editor.getJSON(), content_html: editor.getHTML() });
+      saveMutation.mutate({
+        content: editor.getJSON(),
+        content_html: editor.getHTML(),
+      });
     }
   };
 
-  const { setEditor } = useEditorStore();
+  const { setEditor, setPendingQuery } = useEditorStore();
+
+  const handleBubbleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (bubbleInput.trim()) {
+      setPendingQuery(bubbleInput.trim());
+      setBubbleInput("");
+    }
+  };
 
   const [mounted, setMounted] = useState(false);
 
@@ -270,11 +304,42 @@ export function RichTextEditor({
       {({ onClick: handleDeleteClick }) => (
         <div className="flex flex-col border rounded-md shadow-sm bg-card overflow-hidden">
           <EditorToolbar editor={editor} />
-          <div className="relative">
+          <div className="relative z-20">
+            {editor && (
+              <BubbleMenu
+                editor={editor}
+                className="flex items-center gap-2 p-1.5 rounded-xl border border-zinc-700 bg-zinc-900 shadow-xl overflow-hidden backdrop-blur-md z-100"
+              >
+                <form
+                  onSubmit={handleBubbleSubmit}
+                  className="flex items-center gap-2"
+                >
+                  <div className="flex items-center justify-center pl-2 pr-1 text-yellow-500">
+                    <Sparkles className="h-4 w-4" />
+                  </div>
+                  <Input
+                    autoFocus
+                    placeholder="Ask Sum to edit this..."
+                    className="h-8 w-64 border-0 bg-transparent text-sm focus-visible:ring-0 focus-visible:ring-offset-0 px-1 placeholder:text-zinc-500"
+                    value={bubbleInput}
+                    onChange={(e) => setBubbleInput(e.target.value)}
+                  />
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="h-8 rounded-lg bg-yellow-500 hover:bg-yellow-400 text-zinc-950 text-xs px-3 font-medium"
+                  >
+                    Send
+                  </Button>
+                </form>
+              </BubbleMenu>
+            )}
             <EditorContent editor={editor} className="min-h-125" />
           </div>
 
-          {mounted && typeof window !== "undefined" && document.getElementById("editor-header-actions")
+          {mounted &&
+          typeof window !== "undefined" &&
+          document.getElementById("editor-header-actions")
             ? createPortal(
                 <div className="flex items-center gap-4">
                   <FileMenu
@@ -298,11 +363,13 @@ export function RichTextEditor({
                     </Label>
                   </div>
                 </div>,
-                document.getElementById("editor-header-actions")!
+                document.getElementById("editor-header-actions")!,
               )
             : null}
 
-          {mounted && typeof window !== "undefined" && document.getElementById("editor-save-status")
+          {mounted &&
+          typeof window !== "undefined" &&
+          document.getElementById("editor-save-status")
             ? createPortal(
                 <div className="flex items-center gap-2">
                   {saveStatus === "unmodified" && (
@@ -326,11 +393,13 @@ export function RichTextEditor({
                     </div>
                   )}
                 </div>,
-                document.getElementById("editor-save-status")!
+                document.getElementById("editor-save-status")!,
               )
             : null}
 
-          {mounted && typeof window !== "undefined" && document.getElementById("editor-title")
+          {mounted &&
+          typeof window !== "undefined" &&
+          document.getElementById("editor-title")
             ? createPortal(
                 isEditingTitle ? (
                   <input
@@ -354,7 +423,7 @@ export function RichTextEditor({
                     {title}
                   </h1>
                 ),
-                document.getElementById("editor-title")!
+                document.getElementById("editor-title")!,
               )
             : null}
         </div>

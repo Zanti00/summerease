@@ -135,6 +135,11 @@ class GenerateWithToolsRequest(BaseModel):
         max_length=100_000,
         description="Current HTML content of the open document for tool-calling context"
     )
+    selected_text_html: Optional[str] = Field(
+        default=None,
+        max_length=50_000,
+        description="Current HTML selection from the editor for targeted editing"
+    )
 
     @field_validator("query")
     @classmethod

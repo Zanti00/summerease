@@ -82,7 +82,11 @@ async def extract_and_sanitize_docx(file: UploadFile) -> str:
     
     # Sanitize the HTML
     allowed_tags = {"p", "h1", "h2", "h3", "h4", "h5", "h6", "strong", "em", "u", "ol", "ul", "li", "a", "table", "tr", "td", "th", "tbody", "thead", "blockquote", "pre", "code", "img"}
-    allowed_attributes = {"a": {"href", "title"}, "img": {"src", "alt"}}
+    allowed_attributes = {
+        "a": {"href", "title"}, 
+        "img": {"src", "alt"},
+        "*": {"style", "class"}
+    }
     
     sanitized_html = nh3.clean(html, tags=allowed_tags, attributes=allowed_attributes)
     
@@ -138,7 +142,11 @@ async def create_document(db: AsyncSession, owner_id: str, file: UploadFile) -> 
             
             # Sanitize the HTML
             allowed_tags = {"p", "h1", "h2", "h3", "h4", "h5", "h6", "strong", "em", "u", "ol", "ul", "li", "a", "table", "tr", "td", "th", "tbody", "thead", "blockquote", "pre", "code", "img"}
-            allowed_attributes = {"a": {"href", "title"}, "img": {"src", "alt"}}
+            allowed_attributes = {
+                "a": {"href", "title"}, 
+                "img": {"src", "alt"},
+                "*": {"style", "class"}
+            }
             html_content = nh3.clean(raw_html, tags=allowed_tags, attributes=allowed_attributes)
         except Exception as e:
             print(f"Failed to extract PDF content: {e}")

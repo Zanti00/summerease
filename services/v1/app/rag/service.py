@@ -343,7 +343,6 @@ class RAGService:
             }
             chunks = chunker.chunk(normalized, doc_metadata)
 
-            doc.content_html = f"<pre style='white-space: pre-wrap;'>{normalized}</pre>"
             doc.total_chunks = len(chunks)
             doc.total_tokens = sum(c.token_count for c in chunks)
 

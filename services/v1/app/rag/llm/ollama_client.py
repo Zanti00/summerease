@@ -80,6 +80,7 @@ class OllamaClient:
         messages: list[dict[str, str]],
         temperature: float = 0.1,
         max_tokens: int = 512,
+        context_tokens: int = 8192,
     ) -> AsyncIterator[str]:
         """
         Stream a chat completion from Ollama.
@@ -106,7 +107,7 @@ class OllamaClient:
             "options": {
                 "temperature": temperature,
                 "num_predict": max_tokens,
-                "num_ctx": 4096,
+                "num_ctx": context_tokens,
             },
         }
 
@@ -148,6 +149,7 @@ class OllamaClient:
         tools: list[dict],
         temperature: float = 0.1,
         max_tokens: int = 2048,
+        context_tokens: int = 8192,
     ) -> AsyncIterator[dict]:
         """
         Stream a chat completion from Ollama with tool support.
@@ -162,7 +164,7 @@ class OllamaClient:
             "options": {
                 "temperature": temperature,
                 "num_predict": max_tokens,
-                "num_ctx": 4096,
+                "num_ctx": context_tokens,
             },
         }
 

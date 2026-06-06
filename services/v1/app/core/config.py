@@ -20,6 +20,8 @@ class Settings(BaseSettings):
 
     # Google GenAI Settings
     GOOGLE_API_KEY: str = ""
+    GEMINI_TOOL_MODEL: str = "gemini-2.5-flash"
+    GEMINI_TOOL_MODEL_FALLBACK: str = "gemini-2.0-flash"
     EMBEDDING_MODEL: str = "text-embedding-004"
     EMBEDDING_DIMENSIONS: int = 768
     EMBEDDING_BATCH_SIZE: int = 100
