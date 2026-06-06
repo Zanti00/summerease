@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileMenu } from "./FileMenu";
 import { DeleteDocumentTrigger } from "@/components/delete-document-trigger";
+import { useEditorStore } from "@/hooks/use-editor-store";
 
 import { getAuthToken } from "@/lib/actions/authActions";
 import { ROUTES } from "@/app/constants/routes";
@@ -236,6 +237,8 @@ export function RichTextEditor({
     }
   };
 
+  const { setEditor } = useEditorStore();
+
   const [mounted, setMounted] = useState(false);
 
   // Cleanup timeout on unmount and track mount status
@@ -250,6 +253,13 @@ export function RichTextEditor({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (editor) {
+      setEditor(editor);
+    }
+    return () => setEditor(null);
+  }, [editor, setEditor]);
 
   return (
     <DeleteDocumentTrigger

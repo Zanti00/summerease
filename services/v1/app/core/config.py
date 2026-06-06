@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     LLM_MAX_OUTPUT_TOKENS: int = 512
     LLM_TEMPERATURE: float = 0.1
     LLM_TOP_K_CHUNKS: int = 5
+    LLM_TOOL_MAX_OUTPUT_TOKENS: int = 2048
+    LLM_TOOL_MAX_INPUT_TOKENS: int = 3000
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

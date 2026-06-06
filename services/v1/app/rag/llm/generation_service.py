@@ -16,7 +16,9 @@ from v1.app.core.config import get_settings
 from v1.app.rag.query_engine import QueryEngine
 from v1.app.rag.schemas import SearchRequest
 from .ollama_client import OllamaClient
-from .prompt_builder import build_prompt_messages
+from v1.app.rag.llm.tool_prompt_builder import build_tool_prompt_messages
+from v1.app.rag.llm.tool_definitions import AVAILABLE_TOOLS
+from v1.app.rag.llm.tool_executor import process_tool_call
 
 logger = structlog.get_logger()
 
@@ -93,3 +95,31 @@ class GenerationService:
             max_tokens=self._settings.LLM_MAX_OUTPUT_TOKENS,
         ):
             yield token
+
+    async def generate_with_tools_stream(
+        self,
+        query: str,
+        document_html: str,
+    ) -> AsyncIterator[dict]:
+        """
+        Execute generation with tools and document HTML context.
+        """
+        messages = build_tool_prompt_messages(
+            query=query,
+            document_html=document_html,
+            max_context_tokens=self._settings.LLM_TOOL_MAX_INPUT_TOKENS,
+        )
+
+        async for event in self._ollama_client.stream_chat_with_tools(
+            messages=messages,
+            tools=AVAILABLE_TOOLS,
+            temperature=0.1,
+            max_tokens=self._settings.LLM_TOOL_MAX_OUTPUT_TOKENS,
+        ):
+            if event["type"] == "tool_call":
+                for tool_call in event["tool_calls"]:
+                    result = process_tool_call(tool_call)
+                    if result:
+                        yield result
+            else:
+                yield event

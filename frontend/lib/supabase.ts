@@ -153,6 +153,48 @@ export async function deleteFileFromBucket(filePath: string, bucket = "documents
     throw new Error(
       errorData.message || `Supabase storage delete failed with status ${response.status}: ${response.statusText}`
     );
-  }
+}
 }
 
+/**
+ * Renames (moves) a file in a Supabase storage bucket using client-side fetch.
+ * 
+ * @param oldFilePath - The current path to the file in the bucket.
+ * @param newFilePath - The new path for the file in the bucket.
+ * @param bucket - The name of the storage bucket.
+ * @returns A promise that resolves when the file is successfully renamed.
+ * @throws An error if the renaming fails.
+ */
+export async function renameFileInBucket(oldFilePath: string, newFilePath: string, bucket = "documents"): Promise<void> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error(
+      "Supabase environment variables (NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY) are not configured."
+    );
+  }
+
+  const moveUrl = `${supabaseUrl}/storage/v1/object/move`;
+
+  const response = await fetch(moveUrl, {
+    method: "POST",
+    headers: {
+      "apikey": supabaseKey,
+      "Authorization": `Bearer ${supabaseKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      bucketId: bucket,
+      sourceKey: oldFilePath,
+      destinationKey: newFilePath,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.message || `Supabase storage rename failed with status ${response.status}: ${response.statusText}`
+    );
+  }
+}

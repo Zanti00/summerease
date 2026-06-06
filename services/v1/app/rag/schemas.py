@@ -125,3 +125,24 @@ class GenerateRequest(BaseModel):
         if len(v) < 3:
             raise ValueError("Query too short after normalization")
         return v
+
+class GenerateWithToolsRequest(BaseModel):
+    """Request body for the tool-calling generation endpoint."""
+    query: str = Field(..., min_length=3, max_length=2000)
+    document_ids: Optional[List[str]] = Field(default=None)
+    document_content_html: Optional[str] = Field(
+        default=None,
+        max_length=100_000,
+        description="Current HTML content of the open document for tool-calling context"
+    )
+
+    @field_validator("query")
+    @classmethod
+    def sanitize_query(cls, v: str) -> str:
+        """Strip control characters and excessive whitespace."""
+        v = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", v)
+        v = re.sub(r"\s+", " ", v).strip()
+        v = unicodedata.normalize("NFC", v)
+        if len(v) < 3:
+            raise ValueError("Query too short after normalization")
+        return v

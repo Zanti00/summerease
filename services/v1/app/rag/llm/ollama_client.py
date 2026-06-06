@@ -142,6 +142,72 @@ class OllamaClient:
             )
             raise
 
+    async def stream_chat_with_tools(
+        self,
+        messages: list[dict[str, str]],
+        tools: list[dict],
+        temperature: float = 0.1,
+        max_tokens: int = 2048,
+    ) -> AsyncIterator[dict]:
+        """
+        Stream a chat completion from Ollama with tool support.
+
+        Yields dictionaries with type 'token' or 'tool_call'.
+        """
+        payload = {
+            "model": self._model,
+            "messages": messages,
+            "tools": tools,
+            "stream": True,
+            "options": {
+                "temperature": temperature,
+                "num_predict": max_tokens,
+                "num_ctx": 4096,
+            },
+        }
+
+        try:
+            async with self._client.stream(
+                "POST", "/api/chat", json=payload
+            ) as response:
+                response.raise_for_status()
+                async for line in response.aiter_lines():
+                    if not line.strip():
+                        continue
+                    try:
+                        chunk = json.loads(line)
+                    except json.JSONDecodeError:
+                        logger.warning("ollama.malformed_chunk", raw=line[:200])
+                        continue
+                    
+                    message = chunk.get("message", {})
+                    
+                    # Check for tool calls first
+                    if "tool_calls" in message and message["tool_calls"]:
+                        yield {"type": "tool_call", "tool_calls": message["tool_calls"]}
+                    
+                    # Yield any regular text tokens
+                    token = message.get("content", "")
+                    if token:
+                        yield {"type": "token", "content": token}
+                        
+                    if chunk.get("done", False):
+                        yield {"type": "done"}
+                        return
+        except httpx.ConnectError as exc:
+            logger.error("ollama.connect_failed", error=str(exc))
+            raise OllamaUnavailableError(
+                "Ollama server is not reachable at "
+                f"{self._base_url}. Ensure Ollama is running."
+            ) from exc
+        except httpx.HTTPStatusError as exc:
+            logger.error(
+                "ollama.http_error",
+                status=exc.response.status_code,
+                body=exc.response.text[:500],
+            )
+            raise
+
     async def close(self) -> None:
         """Close the underlying HTTP connection pool."""
         await self._client.aclose()

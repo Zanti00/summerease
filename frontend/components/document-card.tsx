@@ -6,12 +6,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { FileText, Download, Calendar } from "lucide-react";
+import { FileText, Download, Calendar, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { getPublicUrl, type SupabaseFile } from "@/lib/supabase";
 import { formatBytes, formatDate, cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
 import { DeleteDocumentTrigger } from "@/components/delete-document-trigger";
+import { RenameDocumentTrigger } from "@/components/rename-document-trigger";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 /**
  * Props for the DocumentCard component.
@@ -67,22 +73,45 @@ export function DocumentCard({
               <FileText className="h-6 w-6" />
             </div>
             <div className="flex">
-              <DeleteDocumentTrigger
+              <RenameDocumentTrigger
                 documentId={docId}
                 documentName={document.name}
                 bucketName={bucketName}
-                onSuccess={onDeleteSuccess}
               >
-                {({ onClick }) => (
-                  <button
-                    onClick={onClick}
-                    className="p-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-                    title="Delete Document"
+                {({ onClick: onRenameClick }) => (
+                  <DeleteDocumentTrigger
+                    documentId={docId}
+                    documentName={document.name}
+                    bucketName={bucketName}
+                    onSuccess={onDeleteSuccess}
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                    {({ onClick: onDeleteClick }) => (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors outline-none"
+                          onClick={(e) => e.stopPropagation()}
+                          title="More options"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenuItem onClick={onRenameClick} className="cursor-pointer">
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={onDeleteClick}
+                            className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </DeleteDocumentTrigger>
                 )}
-              </DeleteDocumentTrigger>
+              </RenameDocumentTrigger>
             </div>
           </div>
         </CardHeader>

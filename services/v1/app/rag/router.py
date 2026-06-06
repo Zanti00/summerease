@@ -22,6 +22,7 @@ from v1.app.rag.schemas import (
     DeleteResponse,
     ChunkListResponse,
     GenerateRequest,
+    GenerateWithToolsRequest,
 )
 from v1.app.rag.service import RAGService
 from v1.app.rag.query_engine import QueryEngine
@@ -284,6 +285,64 @@ async def generate_answer(
                 document_ids=request.document_ids,
             ):
                 yield f"data: {json.dumps({'token': token})}\n\n"
+            yield "data: [DONE]\n\n"
+        except OllamaUnavailableError:
+            yield f"data: {json.dumps({'error': 'LLM service disconnected during generation'})}\n\n"
+        except Exception as exc:
+            logger.error("rag.generate.stream_error", error=str(exc))
+            yield f"data: {json.dumps({'error': 'Generation failed unexpectedly'})}\n\n"
+        finally:
+            await ollama.close()
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+@router.post("/generate-with-tools")
+async def generate_with_tools(
+    request: GenerateWithToolsRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    RAG-powered answer generation with tool calling support for document editing.
+    """
+    user_id = _get_user_id(current_user)
+    settings = get_settings()
+
+    ollama = OllamaClient(
+        base_url=settings.OLLAMA_BASE_URL,
+        model=settings.OLLAMA_MODEL,
+        timeout=settings.OLLAMA_TIMEOUT_SECONDS,
+    )
+
+    if not await ollama.health_check():
+        await ollama.close()
+        raise HTTPException(
+            status_code=503,
+            detail="LLM service (Ollama) is unavailable. Ensure it is running.",
+        )
+
+    embedding_client = _get_embedding_client()
+    query_engine = QueryEngine(session=db, embedding_client=embedding_client)
+    gen_service = GenerationService(
+        query_engine=query_engine,
+        ollama_client=ollama,
+    )
+
+    async def event_stream():
+        try:
+            async for event in gen_service.generate_with_tools_stream(
+                query=request.query,
+                document_html=request.document_content_html or "",
+            ):
+                yield f"data: {json.dumps(event)}\n\n"
             yield "data: [DONE]\n\n"
         except OllamaUnavailableError:
             yield f"data: {json.dumps({'error': 'LLM service disconnected during generation'})}\n\n"

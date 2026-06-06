@@ -285,3 +285,97 @@ export function streamRAGGeneration(
 
   return controller;
 }
+
+/**
+ * Stream a RAG-generated answer with tool-calling support.
+ *
+ * @param query - User's natural language question
+ * @param documentHtml - Current HTML of the open document
+ * @param onToken - Callback invoked for each regular text token
+ * @param onToolResult - Callback invoked when the LLM returns a tool result
+ * @param onDone - Callback invoked when generation completes
+ * @param onError - Callback invoked on error
+ * @returns AbortController to allow cancellation of the stream
+ */
+export function streamRAGGenerationWithTools(
+  query: string,
+  documentHtml: string | null,
+  onToken: (token: string) => void,
+  onToolResult: (result: { action: string; new_content_html: string; action_summary: string }) => void,
+  onDone: () => void,
+  onError: (error: string) => void,
+): AbortController {
+  const controller = new AbortController();
+
+  (async () => {
+    const headers = await getHeaders();
+    try {
+      const res = await fetch(`${BASE_RAG_URL}/generate-with-tools`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          query,
+          document_content_html: documentHtml,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        onError(errData.detail || "Generation request failed");
+        return;
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) {
+        onError("No response stream available");
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data: ")) continue;
+          const payload = trimmed.slice(6);
+
+          if (payload === "[DONE]") {
+            onDone();
+            return;
+          }
+
+          try {
+            const parsed = JSON.parse(payload);
+            if (parsed.error) {
+              onError(parsed.error);
+              return;
+            }
+            if (parsed.type === "token" && parsed.content) {
+              onToken(parsed.content);
+            } else if (parsed.tool_result) {
+              onToolResult(parsed.tool_result);
+            }
+          } catch {
+            // Malformed JSON line — skip silently
+          }
+        }
+      }
+
+      onDone();
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      onError(err instanceof Error ? err.message : "Stream connection failed");
+    }
+  })();
+
+  return controller;
+}
