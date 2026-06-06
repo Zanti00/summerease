@@ -8,23 +8,27 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface FileMenuProps {
-  onSave: () => void;
-  isSaving: boolean;
+  onSave?: () => void;
+  isSaving?: boolean;
   onDownload: () => void;
   isDownloadDisabled: boolean;
   onRename: () => void;
-  onPrint: () => void;
+  onPrint?: () => void;
   onDelete: (e: React.MouseEvent) => void;
+  showSave?: boolean;
+  showPrint?: boolean;
 }
 
 export function FileMenu({
   onSave,
-  isSaving,
+  isSaving = false,
   onDownload,
   isDownloadDisabled,
   onRename,
   onPrint,
   onDelete,
+  showSave = true,
+  showPrint = true,
 }: FileMenuProps) {
   return (
     <DropdownMenu>
@@ -32,13 +36,15 @@ export function FileMenu({
         File
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-40 bg-popover text-popover-foreground border border-border shadow-md rounded-md p-1">
-        <DropdownMenuItem 
-          onClick={onSave} 
-          disabled={isSaving}
-          className="cursor-pointer"
-        >
-          Save
-        </DropdownMenuItem>
+        {showSave && onSave && (
+          <DropdownMenuItem 
+            onClick={onSave} 
+            disabled={isSaving}
+            className="cursor-pointer"
+          >
+            Save
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem 
           onClick={onDownload} 
           disabled={isDownloadDisabled}
@@ -52,12 +58,14 @@ export function FileMenu({
         >
           Rename
         </DropdownMenuItem>
-        <DropdownMenuItem 
-          onClick={onPrint}
-          className="cursor-pointer"
-        >
-          Print
-        </DropdownMenuItem>
+        {showPrint && onPrint && (
+          <DropdownMenuItem 
+            onClick={onPrint}
+            className="cursor-pointer"
+          >
+            Print
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem 
           onClick={onDelete}
           className="text-destructive focus:text-destructive cursor-pointer"

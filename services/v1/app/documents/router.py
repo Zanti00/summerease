@@ -7,14 +7,17 @@ from rq import Queue
 
 from v1.app.core.database import get_db
 from v1.app.auth.nexusauth_client import get_current_user
+from v1.app.core.config import get_settings
 from . import service
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 # Configure RQ queue
-redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
+settings = get_settings()
+redis_url = settings.REDIS_URL
 redis_conn = Redis.from_url(redis_url)
 autosave_queue = Queue("documents_autosave", connection=redis_conn)
+rag_queue = Queue("rag_processing", connection=redis_conn)
 
 @router.post("/upload")
 async def upload_document(
@@ -29,12 +32,24 @@ async def upload_document(
         raise HTTPException(status_code=401, detail=f"User ID missing in payload: {current_user}")
     
     # Validate extension
-    allowed_exts = (".docx", ".txt", ".md")
-    if not file.filename.endswith(allowed_exts):
-        raise HTTPException(status_code=400, detail="Invalid file type. Only .docx, .txt, .md allowed.")
+    allowed_exts = (".pdf", ".docx", ".txt", ".md")
+    if not file.filename.lower().endswith(allowed_exts):
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: .pdf, .docx, .txt, .md")
     
     document = await service.create_document(db, str(user_id), file)
     
+    # Enqueue RAG processing job
+    try:
+        rag_queue.enqueue(
+            "v1.app.rag.worker_tasks.process_document_task",
+            str(document.id),
+            document.storage_path,
+            job_timeout="30m",
+        )
+    except Exception as e:
+        # Continue - document is created, processing can be retried
+        pass
+        
     return {
         "id": document.id,
         "title": document.title,
@@ -42,6 +57,7 @@ async def upload_document(
         "created_at": document.created_at
     }
 
+@router.get("", include_in_schema=False)
 @router.get("/")
 async def list_documents(
     db: AsyncSession = Depends(get_db),

@@ -7,6 +7,60 @@ from .models import Document, DocumentVersion
 from supabase import create_client, Client
 import mammoth
 import nh3
+import re
+import tempfile
+
+def parse_inline_markdown(text: str) -> str:
+    # Basic inline parsing for bold and italic
+    text = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", text)
+    text = re.sub(r"__(.*?)__", r"<strong>\1</strong>", text)
+    text = re.sub(r"\*(.*?)\*", r"<em>\1</em>", text)
+    text = re.sub(r"_(.*?)_", r"<em>\1</em>", text)
+    return text
+
+def markdown_to_html(md: str) -> str:
+    lines = md.splitlines()
+    html_blocks = []
+    in_list = False
+    
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            if in_list:
+                html_blocks.append("</ul>")
+                in_list = False
+            continue
+            
+        # Lists
+        if stripped.startswith(("- ", "* ", "+ ")):
+            if not in_list:
+                html_blocks.append("<ul>")
+                in_list = True
+            content = stripped[2:]
+            content = parse_inline_markdown(content)
+            html_blocks.append(f"<li>{content}</li>")
+            continue
+        else:
+            if in_list:
+                html_blocks.append("</ul>")
+                in_list = False
+                
+        # Headers
+        if stripped.startswith("# "):
+            html_blocks.append(f"<h1>{parse_inline_markdown(stripped[2:])}</h1>")
+        elif stripped.startswith("## "):
+            html_blocks.append(f"<h2>{parse_inline_markdown(stripped[3:])}</h2>")
+        elif stripped.startswith("### "):
+            html_blocks.append(f"<h3>{parse_inline_markdown(stripped[4:])}</h3>")
+        elif stripped.startswith("#### "):
+            html_blocks.append(f"<h4>{parse_inline_markdown(stripped[5:])}</h4>")
+        else:
+            html_blocks.append(f"<p>{parse_inline_markdown(stripped)}</p>")
+            
+    if in_list:
+        html_blocks.append("</ul>")
+        
+    return "\n".join(html_blocks)
 
 from ..core.config import get_settings
 
@@ -57,15 +111,45 @@ async def create_document(db: AsyncSession, owner_id: str, file: UploadFile) -> 
     
     # 1. Upload original file
     file_url = await upload_document_to_supabase(file, owner_id, doc_id)
+    file_path = f"{owner_id}/{doc_id}_{file.filename}"
+    
+    # Compute SHA-256 file hash
+    file_bytes = await file.read()
+    import hashlib
+    file_hash = hashlib.sha256(file_bytes).hexdigest()
+    await file.seek(0)
     
     # 2. Extract and sanitize
     html_content = ""
-    if file.filename.endswith(".docx"):
+    filename_lower = file.filename.lower()
+    if filename_lower.endswith(".docx"):
         html_content = await extract_and_sanitize_docx(file)
-    elif file.filename.endswith((".txt", ".md")):
-        content = await file.read()
-        html_content = f"<p>{nh3.clean(content.decode('utf-8'))}</p>"
-        await file.seek(0)
+    elif filename_lower.endswith((".txt", ".md")):
+        html_content = f"<p>{nh3.clean(file_bytes.decode('utf-8', errors='ignore'))}</p>"
+    elif filename_lower.endswith(".pdf"):
+        # Write bytes to a temp file since pymupdf4llm operates on file paths
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
+            temp_file.write(file_bytes)
+            temp_path = temp_file.name
+        try:
+            import pymupdf4llm
+            md_text = pymupdf4llm.to_markdown(temp_path)
+            raw_html = markdown_to_html(md_text)
+            
+            # Sanitize the HTML
+            allowed_tags = {"p", "h1", "h2", "h3", "h4", "h5", "h6", "strong", "em", "u", "ol", "ul", "li", "a", "table", "tr", "td", "th", "tbody", "thead", "blockquote", "pre", "code", "img"}
+            allowed_attributes = {"a": {"href", "title"}, "img": {"src", "alt"}}
+            html_content = nh3.clean(raw_html, tags=allowed_tags, attributes=allowed_attributes)
+        except Exception as e:
+            print(f"Failed to extract PDF content: {e}")
+            html_content = f"<p>PDF Document (Extraction failed: {str(e)})</p>"
+        finally:
+            # Ensure cleanup of the temporary file
+            try:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+            except Exception:
+                pass
         
     file_size = file.size
 
@@ -74,10 +158,15 @@ async def create_document(db: AsyncSession, owner_id: str, file: UploadFile) -> 
         id=doc_id,
         owner_id=uuid.UUID(owner_id),
         title=file.filename,
+        file_name=file.filename,
+        file_hash=file_hash,
+        storage_path=file_path,
         original_file_url=file_url,
         content_html=html_content,
         file_type=file.content_type,
-        file_size=file_size
+        file_size=file_size,
+        upload_status="uploaded",
+        processing_status="pending"
     )
     db.add(document)
     await db.commit()

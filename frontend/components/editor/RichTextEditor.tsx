@@ -23,6 +23,7 @@ import { DeleteDocumentTrigger } from "@/components/delete-document-trigger";
 
 import { getAuthToken } from "@/lib/actions/authActions";
 import { ROUTES } from "@/app/constants/routes";
+import { API_BASE_URL } from "@/lib/apiConfig";
 
 import { createPortal } from "react-dom";
 import { Switch } from "@/components/ui/switch";
@@ -45,8 +46,6 @@ export function RichTextEditor({
 }: RichTextEditorProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
-
-
 
   const [saveStatus, setSaveStatus] = useState<"unmodified" | "saved" | "saving" | "unsaved">(
     "unmodified",
@@ -166,7 +165,7 @@ export function RichTextEditor({
     }) => {
       const token = await getAuthToken();
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/documents/${documentId}`,
+        `${API_BASE_URL}/documents/${documentId}`,
         {
           method: "PUT",
           headers: {

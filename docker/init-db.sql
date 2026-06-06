@@ -5,3 +5,7 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'summerease')\gexec
 -- Create NexusAuth database if it does not exist (case-sensitive)
 SELECT 'CREATE DATABASE "NexusAuth"'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'NexusAuth')\gexec
+
+-- Enable pgvector extension in summerease database
+\c summerease
+CREATE EXTENSION IF NOT EXISTS vector;

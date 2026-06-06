@@ -10,6 +10,9 @@ from alembic import context
 config = context.config
 
 import os
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+
 db_url = os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url"))
 if db_url:
     sync_url = db_url.replace("+asyncpg", "")
@@ -22,9 +25,14 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = None
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from v1.app.core.database import Base
+from v1.app.documents.models import Document, DocumentVersion
+from v1.app.rag.models import DocumentChunk, Embedding
+
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

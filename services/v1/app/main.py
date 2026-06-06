@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from .auth.router import router as auth_router
 from .documents.router import router as documents_router
+from .rag.router import router as rag_router
 
 app = FastAPI(
     title="SummerEase API v1",
@@ -12,6 +13,7 @@ app = FastAPI(
 
 app.include_router(auth_router)
 app.include_router(documents_router)
+app.include_router(rag_router)
 
 @app.get("/", tags=["Health Check"])
 async def root():

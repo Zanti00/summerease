@@ -35,3 +35,16 @@ greenlet==3.0.3
 python-multipart==0.0.9
 python-docx==1.2.0
 htmldocx==0.0.6
+google-generativeai
+pymupdf4llm
+tiktoken
+structlog
+
+# RAG Pipeline Dependencies
+google-generativeai>=0.8.0
+tiktoken>=0.7.0
+pymupdf4llm>=0.0.17
+pgvector>=0.3.6
+pyclamd>=0.4.0
+structlog>=24.1.0
+chardet>=5.2.0

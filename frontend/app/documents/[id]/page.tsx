@@ -12,6 +12,7 @@ import { Chatbox } from "@/components/chatbox";
 import { getAuthToken } from "@/lib/actions/authActions";
 import { useQueryClient } from "@tanstack/react-query";
 import { fetchDocuments } from "@/hooks/use-documents";
+import { API_BASE_URL } from "@/lib/apiConfig";
 
 export default function DocumentEditorPage() {
   const params = useParams();
@@ -36,7 +37,7 @@ export default function DocumentEditorPage() {
     queryFn: async () => {
       const token = await getAuthToken();
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/documents/${documentId}`,
+        `${API_BASE_URL}/documents/${documentId}`,
         {
           headers: {
             Authorization: token ? `Bearer ${token}` : "",

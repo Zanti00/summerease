@@ -4,15 +4,16 @@ import { useHeader } from "@/lib/contexts/header-context";
 import { Button } from "@/components/ui/button";
 import { FileUp } from "lucide-react";
 import { useEffect } from "react";
-import { useWordUpload } from "@/hooks/use-file-upload";
+import { useFileUpload } from "@/hooks/use-file-upload";
 
 import { getAuthToken } from "@/lib/actions/authActions";
+import { API_BASE_URL } from "@/lib/apiConfig";
 
 interface PageHeaderProps {
   title: string;
   subtitle?: string;
   /**
-   * Callback triggered when a Word document is successfully selected, validated, and uploaded to storage.
+   * Callback triggered when a document is successfully selected, validated, and uploaded to storage.
    */
   onUploadSuccess?: (file: File, publicUrl?: string) => void | Promise<void>;
   /**
@@ -34,7 +35,14 @@ export function PageHeader({
 }: PageHeaderProps) {
   const { setTitle, setSubtitle } = useHeader();
 
-  const { triggerUpload, isProcessing } = useWordUpload({
+  const { triggerUpload, isProcessing } = useFileUpload({
+    allowedExtensions: [".docx", ".pdf", ".txt", ".md"],
+    allowedMimeTypes: [
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/pdf",
+      "text/plain",
+      "text/markdown",
+    ],
     onSuccess: async (file) => {
       // 1. Upload to FastAPI
       const formData = new FormData();
@@ -43,7 +51,7 @@ export function PageHeader({
       try {
         const token = await getAuthToken();
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/documents/upload`,
+          `${API_BASE_URL}/documents/upload`,
           {
             method: "POST",
             headers: {
@@ -67,11 +75,11 @@ export function PageHeader({
         }
       } catch (e) {
         console.error(e);
-        // Toast is usually handled inside useWordUpload, but here we can just throw or alert
+        // Toast is usually handled inside useFileUpload, but here we can just throw or alert
         alert("Failed to upload via API");
       }
     },
-    maxSizeMB: 10, // Default 10MB limit for Word files
+    maxSizeMB: 50, // Support larger files up to 50MB
   });
 
   useEffect(() => {

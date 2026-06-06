@@ -1,9 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAuthToken } from "@/lib/actions/authActions";
+import { API_BASE_URL } from "@/lib/apiConfig";
 
 export const fetchDocuments = async () => {
   const token = await getAuthToken();
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/documents`, {
+  const res = await fetch(`${API_BASE_URL}/documents`, {
     headers: {
       Authorization: token ? `Bearer ${token}` : ""
     }
@@ -31,4 +32,3 @@ export const useRefreshDocuments = () => {
     queryClient.invalidateQueries({ queryKey: ["documents"] });
   };
 };
-
