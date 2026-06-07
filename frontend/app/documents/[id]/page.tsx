@@ -106,7 +106,7 @@ export default function DocumentEditorPage() {
   const handleBack = async () => {
     await queryClient.fetchQuery({
       queryKey: ["documents"],
-      queryFn: fetchDocuments,
+      queryFn: () => fetchDocuments(),
     });
     router.refresh();
     router.back();

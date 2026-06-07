@@ -30,7 +30,8 @@ export const fetchDocuments = async (page = 1, perPage = 8) => {
     },
   );
   if (!res.ok) {
-    throw new Error("Failed to load documents");
+    const text = await res.text().catch(() => "Unknown error");
+    throw new Error(`Failed to load documents: ${res.status} ${text}`);
   }
   return res.json() as Promise<DocumentListResponse>;
 };
