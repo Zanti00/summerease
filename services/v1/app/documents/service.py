@@ -159,7 +159,7 @@ async def create_document(db: AsyncSession, owner_id: str, file: UploadFile) -> 
             except Exception:
                 pass
         
-    file_size = file.size
+    file_size = len(file_bytes)
 
     # 3. Create record
     document = Document(

@@ -1,6 +1,7 @@
 import os
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status, BackgroundTasks, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 from typing import Any, Dict
 from redis import Redis
 from rq import Queue
@@ -61,7 +62,9 @@ async def upload_document(
 @router.get("/")
 async def list_documents(
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=8, ge=1, le=8),
 ):
     if not current_user:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -69,23 +72,42 @@ async def list_documents(
     if not user_id:
         raise HTTPException(status_code=401, detail=f"User ID missing in payload: {current_user}")
     
-    from sqlalchemy import select
     from .models import Document
     
-    stmt = select(Document).where(Document.owner_id == user_id).order_by(Document.updated_at.desc())
+    count_stmt = select(func.count()).select_from(Document).where(Document.owner_id == user_id)
+    total = (await db.execute(count_stmt)).scalar_one()
+    total_pages = (total + per_page - 1) // per_page if total > 0 else 0
+    offset = (page - 1) * per_page
+    stmt = (
+        select(Document)
+        .where(Document.owner_id == user_id)
+        .order_by(Document.updated_at.desc())
+        .offset(offset)
+        .limit(per_page)
+    )
     result = await db.execute(stmt)
     documents = result.scalars().all()
-    
-    return [
-        {
-            "id": str(doc.id),
-            "title": doc.title,
-            "original_file_url": doc.original_file_url,
-            "created_at": doc.created_at,
-            "updated_at": doc.updated_at
-        }
-        for doc in documents
-    ]
+
+    return {
+        "documents": [
+            {
+                "id": str(doc.id),
+                "title": doc.title,
+                "original_file_url": doc.original_file_url,
+                "file_size": doc.file_size,
+                "file_type": doc.file_type,
+                "created_at": doc.created_at,
+                "updated_at": doc.updated_at,
+            }
+            for doc in documents
+        ],
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": total_pages,
+        },
+    }
 
 @router.get("/{doc_id}")
 async def get_document(
@@ -109,6 +131,8 @@ async def get_document(
         "content": document.content,
         "content_html": document.content_html,
         "original_file_url": document.original_file_url,
+        "file_size": document.file_size,
+        "file_type": document.file_type,
         "is_autosave_enabled": document.is_autosave_enabled,
         "updated_at": document.updated_at
     }
