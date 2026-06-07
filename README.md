@@ -3,240 +3,214 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue)](https://www.python.org/)
 [![Node](https://img.shields.io/badge/node-20+-green)](https://nodejs.org/)
+[![Docker](https://img.shields.io/badge/docker-ready-blue)](https://www.docker.com/)
 
-## 1. Project Title & Description
+**SummerEase** is an AI-powered document summarization and plagiarism-checking platform with a polished Next.js web UI and a high-performance FastAPI backend. It utilizes Retrieval-Augmented Generation (RAG) powered by Google Gemini (with an Agnes AI fallback) and local Ollama models.
 
-**SummerEase** is an AI-powered document summarization and plagiarism-checking platform with a polished web UI and a served backend API layer.
-
-Problem solved:
-
-- Teams need fast extraction of key points from large documents.
-- Developers need an integrated pipeline for upload, processing, and report delivery.
-
-Value proposition:
-
-- Automatically generate high-quality summaries + plagiarism evidence in one workflow.
-- Fast API endpoint, secure storage, extensible architecture.
-
-## 2. Tech Stack
-
-- **FastAPI** (Python) for high-performance ASGI backend and auto-generated API docs.
-- **Uvicorn** for production-grade async server.
-- **Next.js** for modern SSR/SPA frontend (`frontend/`).
-- **Python 3.11+**, **Node 20+**.
-- **PostgreSQL** (recommended) via SQLAlchemy/Alembic migrations in `services`.
-- **JWT** / OAuth compatible auth patterns.
-- **Redis** (optional) for caching summary and plagiarism results.
-- **Docker** for containerized deployment (not in repo yet but recommended).
-
-## 3. Features
-
-- Document upload endpoint (PDF/DOCX/TXT)
-- AI summarization pipeline (LLM integration placeholder)
-- Plagiarism check module (external API hooks)
-- Health check endpoint (`/`)
-- Fast development reload and API docs at `/docs`.
-- Advanced: caching, rate limiter, structured logging.
-
-## 4. System Architecture
-
-Monolith with clearly separated frontend + backend packages:
-
-- `frontend/` - Next.js React UI
-- `services/` - FastAPI backend, migrations, Python models
-
-Flow:
-
-1. Client -> Next.js API/routes
-2. Next.js frontend -> FastAPI in `services` for endpoints
-3. FastAPI -> DB via SQLAlchemy -> PostgreSQL
-4. Optional cache layer (Redis) for repeat summary workloads
-
-Patterns:
-
-- Dependency injection via FastAPI `Depends`
-- Repository/service pattern possible in `services/app` modules
-- `alembic` for data migration strategy
-
-## 5. Installation & Setup
-
-### Prerequisites
-
-- Node 20+
-- Python 3.11+
-- pnpm or npm
-- PostgreSQL 15+ (or your choice)
-- (optional) Redis
-
-### Setup
-
-```bash
-cd c:\Projects\summerease
-# frontend
-cd frontend
-pnpm install
-
-# backend
-cd ..\services
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-### .env example
-
-Create `.env` in `services`:
-
-```ini
-DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/summerease
-SECRET_KEY=ChangeMe_To_Secure_Value
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=60
-REDIS_URL=redis://localhost:6379/0
-```
-
-### Database and Migrations
-
-```bash
-cd services
-.venv\Scripts\Activate.ps1
-alembic upgrade head
-```
-
-If this repo has Alembic models in `services/alembic/`.
-
-## 6. Usage
-
-### Development server
-
-Backend:
-
-```bash
-cd services
-.venv\Scripts\Activate.ps1
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-Frontend:
-
-```bash
-cd frontend
-pnpm dev
-```
-
-### Production
-
-Build frontend:
-
-```bash
-cd frontend
-pnpm build
-pnpm start
-```
-
-Run backend (production workers):
-
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
-```
-
-### Base URLs
-
-- API: `http://localhost:8000`
-- Swagger: `http://localhost:8000/docs`
-- Frontend: `http://localhost:3000`
-
-### Example request
-
-```bash
-curl -X GET "http://localhost:8000/" -H "Accept: application/json"
-```
-
-## 7. Project Structure
-
-- `frontend/` - Next.js app (UI, components, page routes)
-- `services/app` - FastAPI app module entrypoint (`main.py`)
-- `services/alembic` - migrations
-- `services/requirements.txt` - Python dependencies
-- `package.json` - root workspace config
-- `pnpm-workspace.yaml` - monorepo package layout
-
-## 8. API Documentation
-
-Main endpoints in FastAPI:
-
-- `GET /` — health check
-- `GET /docs` — OpenAPI UI
-- `POST /upload` — document upload / summary trigger (planned)
-- `POST /plagiarism` — check contents for plagiarism (planned)
-
-### Example response
-
-```json
-{
-  "status": "ok",
-  "message": "Service is running"
-}
-```
-
-## 9. Authentication & Security
-
-- Use JWT for token authentication and refresh-cycle.
-- `Authorization: Bearer <token>` header on protected endpoints.
-- Secure config via `.env`, not committed.
-- Enforce HTTPS in production and set `Secure` cookie flags.
-
-## 10. Performance & Scalability
-
-- Redis cache for summary results + rate limits.
-- DB tuning: use connection pool and indexes via migrations.
-- Run as multiple Uvicorn workers behind a reverse proxy (NGINX) for horizontal scaling.
-- Offload heavy compute to async tasks/worker queue (Celery/RQ) if necessary.
-
-## 11. Testing
-
-- Use `pytest` under `services` and `frontend` if appropriate.
-- Start test env with `pytest -q` from each package.
-
-```bash
-cd services
-.venv\Scripts\Activate.ps1
-pytest -q
-```
-
-## 12. Deployment
-
-Strategy
-
-- Build Docker images for each service.
-- Apply CI pipeline with GitHub Actions/Bitbucket Pipelines.
-- Deploy to AWS ECS/Fargate, Azure App Service, or GCP Cloud Run.
-
-Sample Docker env config:
-
-- `ENV=production`
-- `DATABASE_URL`
-- `SECRET_KEY`
-- `REDIS_URL`
-
-## 13. Contributing
-
-1. Fork repo, create branch `feature/<name>`.
-2. Add tests for new behavior.
-3. Open PR with link to issue.
-4. Follow commit style and lint with `pnpm lint`/`flake8`.
-
-## 14. License
-
-MIT License - see `LICENSE`
+This guide is written from the ground up to help you set up the entire project, whether you are running it natively on your machine or through Docker.
 
 ---
 
-## Optional ASCII Diagram
+## 1. Prerequisites
+
+Before you start, ensure you have the following installed on your system:
+
+- **Git**: To clone the repositories.
+- **Node.js (v20+)**: Required for the frontend.
+- **pnpm**: Fast package manager for Node.js (`npm install -g pnpm`).
+- **Python (3.11+)**: Required for the backend services.
+- **Docker Desktop / Engine**: Required if you plan to use Docker to spin up the databases, workers, and API services easily.
+
+---
+
+## 2. Cloning the Repositories
+
+Because SummerEase relies on **NexusAuth** for authentication, you will need to clone both repositories side-by-side. Your directory structure should look like this:
 
 ```
-[Browser] -> [Next.js Frontend] -> [FastAPI Backend] -> [Postgres]
-                                 \-> [Redis Cache]
-                                 \-> [External AI/Plagiarism API]
+Projects/
+├── NexusAuth/
+└── summerease/
 ```
+
+**Commands to clone:**
+```bash
+cd c:\Projects
+git clone <URL_TO_NEXUSAUTH_REPO> NexusAuth
+git clone <URL_TO_SUMMEREASE_REPO> summerease
+cd summerease
+```
+
+*(Note: If you already have the directories as shown above, you can skip cloning.)*
+
+---
+
+## 3. Environment Variables Setup
+
+SummerEase requires several `.env` files to configure API keys, databases, and LLMs. Example files are provided in the repository.
+
+You will need to create three environment files based on their examples:
+
+### A. Root Directory (`summerease/.env`)
+This is primarily used by Docker Compose.
+```bash
+# Copy the example file
+cp .env.example .env
+```
+Edit `summerease/.env` and add your Google API key:
+```ini
+GOOGLE_API_KEY=your-google-api-key
+```
+
+### B. Backend Services (`summerease/services/.env`)
+This configures the FastAPI backend, RAG pipeline, and LLMs.
+```bash
+# Copy the example file
+cp services/.env.example services/.env
+```
+Edit `services/.env` and fill in your details (Supabase, Google GenAI, Agnes AI fallback):
+```ini
+DATABASE_URL=postgresql+asyncpg://postgres:admin@localhost:5433/summerease
+REDIS_URL=redis://localhost:6380
+SECRET_KEY=ChangeMe_To_Secure_Value
+ENVIRONMENT=development
+NEXUSAUTH_BASE_URL=http://127.0.0.1:3001
+NEXUSAUTH_API_KEY=dummy_key
+
+SUPABASE_URL=https://your-supabase-project.supabase.co
+SUPABASE_KEY=your-supabase-service-role-key
+
+# RAG & LLM Configurations
+GOOGLE_API_KEY=your-google-api-key
+EMBEDDING_MODEL=gemini-embedding-2
+# ... (Leave the rest of the RAG defaults as they are unless you need to change them)
+
+# Agnes AI Fallback Configuration (Optional)
+SAPIENS_API_KEY=your-agnes-api-key-here
+SAPIENS_BASE_URL=https://apihub.agnes-ai.com/v1
+SAPIENS_MODEL=agnes-2.0-flash
+```
+
+### C. Frontend App (`summerease/frontend/.env.local`)
+This configures the Next.js web application.
+```bash
+# Copy the example file
+cp frontend/.env.local.example frontend/.env.local
+```
+Edit `frontend/.env.local`:
+```ini
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_AUTH_API=http://localhost:3001
+NEXT_PUBLIC_SUPABASE_URL=https://your-supabase-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+### D. NexusAuth
+Don't forget to configure the environment variables in `../NexusAuth/.env` if you haven't already!
+
+---
+
+## 4. Method A: Full Docker Setup (Recommended)
+
+The easiest way to get the entire stack (Database, Redis, ClamAV, Ollama, NexusAuth, FastAPI backend, and Background Workers) running is by using Docker Compose.
+
+```bash
+cd c:\Projects\summerease
+
+# Build and start all containers in detached mode
+docker-compose up -d --build
+```
+
+**Wait a few moments** for the database to initialize and services to start. You can check the logs to ensure everything is running smoothly:
+```bash
+docker-compose logs -f
+```
+
+*(Note: The frontend is not containerized in `docker-compose.yml` by default, so you will run the Next.js app locally. See **Step 6**.)*
+
+---
+
+## 5. Method B: Local Setup (Without Docker)
+
+If you prefer to run the Python backend and services locally without Docker, follow these steps.
+
+### Start Required Infrastructure
+You will still need PostgreSQL, Redis, and optionally ClamAV & Ollama. You can run just the infrastructure via Docker:
+```bash
+docker-compose up -d db redis clamav ollama
+```
+
+### Backend Setup (FastAPI)
+```bash
+cd c:\Projects\summerease\services
+
+# Create and activate a Python virtual environment
+python -m venv .venv
+.venv\Scripts\Activate.ps1   # On Windows PowerShell
+# source .venv/bin/activate  # On Mac/Linux
+
+# Upgrade pip and install dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Run Database Migrations (if applicable)
+alembic upgrade head
+
+# Start the FastAPI Development Server
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+### Background Workers
+If you are running the backend locally, you also need to start the Redis Queue (RQ) workers in separate terminal windows (with the virtual environment activated):
+```bash
+# Terminal 2
+cd services
+.venv\Scripts\Activate.ps1
+rq worker documents_autosave --url redis://localhost:6380
+
+# Terminal 3
+cd services
+.venv\Scripts\Activate.ps1
+rq worker rag_processing --url redis://localhost:6380
+```
+
+---
+
+## 6. Frontend Setup (Next.js)
+
+Whether you used Method A (Docker) or Method B (Local) for the backend, you will run the frontend the same way.
+
+Open a new terminal:
+```bash
+cd c:\Projects\summerease\frontend
+
+# Install dependencies
+pnpm install
+
+# Start the development server
+pnpm dev
+```
+
+---
+
+## 7. Accessing the Application
+
+Once everything is up and running, you can access the different components of the application at the following URLs:
+
+- **Web Application (Frontend)**: [http://localhost:3000](http://localhost:3000)
+- **SummerEase API (Backend)**: [http://localhost:8000](http://localhost:8000)
+- **SummerEase API Docs (Swagger UI)**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **NexusAuth Auth API**: [http://localhost:3001](http://localhost:3001)
+
+---
+
+## 8. Troubleshooting
+
+- **Database Connection Issues**: Ensure the credentials in `services/.env` match the `POSTGRES_USER` and `POSTGRES_PASSWORD` defined in `docker-compose.yml` (`postgres` / `admin`).
+- **Gemini Fallback/Agnes AI**: If Gemini quota is exhausted, generation will gracefully fallback to Agnes AI as long as `SAPIENS_API_KEY` is provided in `services/.env`.
+- **ClamAV Healthcheck**: ClamAV takes a bit of time to start up and download virus definitions. Wait about 1-2 minutes for it to become healthy.
+- **Missing `openai` module**: Ensure you've run `pip install -r requirements.txt` again, as dependencies are occasionally updated.
+
+## 9. License
+
+MIT License - see `LICENSE`

@@ -169,7 +169,7 @@ class GenerationService:
                         yield {"type": "token", "content": part.text}
                 
                 # Success, no need to try the fallback model
-                break
+                return
 
             except ResourceExhausted:
                 if tokens_yielded:
@@ -183,5 +183,76 @@ class GenerationService:
                     )
                     continue
                 else:
-                    logger.error("rag.generate_with_tools.quota_limit_exhausted_all_models", model_name=model_name)
-                    raise
+                    logger.warning("rag.generate_with_tools.quota_limit_exhausted_all_models", model_name=model_name)
+                    break
+            except Exception as e:
+                logger.error("rag.generate_with_tools.error", error=str(e), model_name=model_name)
+                if not tokens_yielded and attempt == len(models_to_try) - 1:
+                    break
+                raise
+
+        # Fallback to Agnes AI
+        if self._settings.SAPIENS_API_KEY:
+            from openai import AsyncOpenAI
+            import json
+            
+            logger.info("rag.generate_with_tools.fallback_to_agnes")
+            
+            client = AsyncOpenAI(
+                api_key=self._settings.SAPIENS_API_KEY,
+                base_url=self._settings.SAPIENS_BASE_URL if self._settings.SAPIENS_BASE_URL else None,
+            )
+            
+            try:
+                response = await client.chat.completions.create(
+                    model=self._settings.SAPIENS_MODEL if self._settings.SAPIENS_MODEL else "agnes-v1",
+                    messages=messages,
+                    tools=tools_subset,
+                    temperature=0.1,
+                    max_tokens=self._settings.LLM_TOOL_MAX_OUTPUT_TOKENS,
+                    stream=True
+                )
+                
+                tool_call_buffer = {}
+                
+                async for chunk in response:
+                    if not chunk.choices:
+                        continue
+                    delta = chunk.choices[0].delta
+                    if delta.tool_calls:
+                        for tool_call_delta in delta.tool_calls:
+                            idx = tool_call_delta.index
+                            if idx not in tool_call_buffer:
+                                tool_call_buffer[idx] = {
+                                    "id": tool_call_delta.id or "",
+                                    "type": "function",
+                                    "function": {
+                                        "name": tool_call_delta.function.name or "",
+                                        "arguments": tool_call_delta.function.arguments or ""
+                                    }
+                                }
+                            else:
+                                if tool_call_delta.function.name:
+                                    tool_call_buffer[idx]["function"]["name"] += tool_call_delta.function.name
+                                if tool_call_delta.function.arguments:
+                                    tool_call_buffer[idx]["function"]["arguments"] += tool_call_delta.function.arguments
+                    elif delta.content:
+                        yield {"type": "token", "content": delta.content}
+
+                # Process buffered tool calls
+                if tool_call_buffer:
+                    for idx, tool_call in tool_call_buffer.items():
+                        try:
+                            tool_call["function"]["arguments"] = json.loads(tool_call["function"]["arguments"])
+                            result = process_tool_call(tool_call)
+                            if result:
+                                yield result
+                        except json.JSONDecodeError:
+                            logger.error("rag.generate_with_tools.agnes_fallback.json_decode_error", args=tool_call["function"]["arguments"])
+                return
+            except Exception as e:
+                logger.error("rag.generate_with_tools.agnes_fallback_failed", error=str(e))
+                raise
+        else:
+            logger.error("rag.generate_with_tools.exhausted_and_no_fallback")
+            raise ResourceExhausted("Gemini quota exhausted and Sapiens fallback not configured.")

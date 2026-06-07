@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = ""
     SUPABASE_KEY: str = ""
 
+    # Sapiens / Agnes AI Settings (Fallback)
+    SAPIENS_API_KEY: str = ""
+    SAPIENS_BASE_URL: str = ""
+    SAPIENS_MODEL: str = ""
+
     # Google GenAI Settings
     GOOGLE_API_KEY: str = ""
     GEMINI_TOOL_MODEL: str = "gemini-2.5-flash"
