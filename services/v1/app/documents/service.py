@@ -9,6 +9,22 @@ import mammoth
 import nh3
 import re
 import tempfile
+import io
+
+def extract_text_from_image(file_bytes: bytes) -> str:
+    try:
+        from PIL import Image
+        import pytesseract
+        
+        # Open image from bytes
+        img = Image.open(io.BytesIO(file_bytes))
+        
+        # Extract text
+        text = pytesseract.image_to_string(img)
+        return text.strip()
+    except Exception as e:
+        print(f"Failed to extract text from image using Tesseract: {e}")
+        return ""
 
 def parse_inline_markdown(text: str) -> str:
     # Basic inline parsing for bold and italic
@@ -72,23 +88,37 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and
 async def extract_and_sanitize_docx(file: UploadFile) -> str:
     content = await file.read()
     
-    # Mammoth requires a file-like object, but we have bytes.
     import io
+    import base64
     file_stream = io.BytesIO(content)
     
+    def convert_image(image):
+        with image.open() as image_stream:
+            img_data = image_stream.read()
+            encoded_src = base64.b64encode(img_data).decode("ascii")
+            extracted_text = extract_text_from_image(img_data)
+            
+        attrs = {
+            "src": "data:{0};base64,{1}".format(image.content_type, encoded_src)
+        }
+        if extracted_text:
+            attrs["alt"] = nh3.clean(extracted_text, tags=set()).replace("\n", " ")
+        return attrs
+    
     # Convert DOCX to HTML
-    result = mammoth.convert_to_html(file_stream)
+    result = mammoth.convert_to_html(file_stream, convert_image=mammoth.images.img_element(convert_image))
     html = result.value
     
     # Sanitize the HTML
-    allowed_tags = {"p", "h1", "h2", "h3", "h4", "h5", "h6", "strong", "em", "u", "ol", "ul", "li", "a", "table", "tr", "td", "th", "tbody", "thead", "blockquote", "pre", "code", "img"}
+    allowed_tags = {"p", "h1", "h2", "h3", "h4", "h5", "h6", "strong", "em", "u", "ol", "ul", "li", "a", "table", "tr", "td", "th", "tbody", "thead", "blockquote", "pre", "code", "img", "br", "i", "span"}
     allowed_attributes = {
         "a": {"href", "title"}, 
         "img": {"src", "alt"},
+        "span": {"class", "style"},
         "*": {"style", "class"}
     }
     
-    sanitized_html = nh3.clean(html, tags=allowed_tags, attributes=allowed_attributes)
+    sanitized_html = nh3.clean(html, tags=allowed_tags, attributes=allowed_attributes, url_schemes={"http", "https", "data"})
     
     await file.seek(0)
     return sanitized_html
@@ -141,13 +171,14 @@ async def create_document(db: AsyncSession, owner_id: str, file: UploadFile) -> 
             raw_html = markdown_to_html(md_text)
             
             # Sanitize the HTML
-            allowed_tags = {"p", "h1", "h2", "h3", "h4", "h5", "h6", "strong", "em", "u", "ol", "ul", "li", "a", "table", "tr", "td", "th", "tbody", "thead", "blockquote", "pre", "code", "img"}
+            allowed_tags = {"p", "h1", "h2", "h3", "h4", "h5", "h6", "strong", "em", "u", "ol", "ul", "li", "a", "table", "tr", "td", "th", "tbody", "thead", "blockquote", "pre", "code", "img", "br", "i", "span"}
             allowed_attributes = {
                 "a": {"href", "title"}, 
                 "img": {"src", "alt"},
+                "span": {"class", "style"},
                 "*": {"style", "class"}
             }
-            html_content = nh3.clean(raw_html, tags=allowed_tags, attributes=allowed_attributes)
+            html_content = nh3.clean(raw_html, tags=allowed_tags, attributes=allowed_attributes, url_schemes={"http", "https", "data"})
         except Exception as e:
             print(f"Failed to extract PDF content: {e}")
             html_content = f"<p>PDF Document (Extraction failed: {str(e)})</p>"
@@ -158,7 +189,6 @@ async def create_document(db: AsyncSession, owner_id: str, file: UploadFile) -> 
                     os.remove(temp_path)
             except Exception:
                 pass
-        
     file_size = len(file_bytes)
 
     # 3. Create record

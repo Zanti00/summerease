@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import tiktoken
 import structlog
+import re
 
 logger = structlog.get_logger()
 
@@ -23,6 +24,7 @@ STRICT RULES:
    - NEVER use markdown (e.g., **, ##, -). Use HTML equivalents.
    - NEVER wrap your response in markdown code blocks. Output raw HTML.
    - DO NOT add inline styles, classes, or <mark>, <pre>, <code>, <div> tags. Keep formatting structural only.
+6. Images in the document have their text extracted via OCR. The extracted text is stored in the `alt` attribute of the `<img>` tag. You MUST read the `alt` attribute to answer questions about images!
 
 DOCUMENT CONTENT:
 {content}
@@ -41,6 +43,12 @@ def build_tool_prompt_messages(
     Assemble the chat messages array for Ollama with tool calling context.
     """
     encoder = tiktoken.get_encoding(_TOKENIZER_ENCODING)
+
+    # Strip massive base64 data URIs so they don't confuse the LLM
+    if document_html:
+        document_html = re.sub(r'src="data:image/[^"]+"', 'src="[embedded_image]"', document_html)
+    if selected_html:
+        selected_html = re.sub(r'src="data:image/[^"]+"', 'src="[embedded_image]"', selected_html)
 
     if not document_html:
         document_html = "(No document open)"

@@ -136,6 +136,46 @@ async def get_document(
         "is_autosave_enabled": document.is_autosave_enabled,
         "updated_at": document.updated_at
     }
+@router.post("/{doc_id}/images/process")
+async def process_document_image(
+    doc_id: str,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    user_id = current_user.get("id", current_user.get("sub"))
+    if not user_id:
+        raise HTTPException(status_code=401, detail=f"User ID missing in payload: {current_user}")
+        
+    document = await service.get_document(db, doc_id, str(user_id))
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+        
+    file_bytes = await file.read()
+    
+    # Run OCR
+    extracted_text = service.extract_text_from_image(file_bytes)
+    
+    # Base64 encode for frontend insertion
+    import base64
+    encoded_src = base64.b64encode(file_bytes).decode("ascii")
+    base64_str = f"data:{file.content_type};base64,{encoded_src}"
+    
+    # If text found, chunk and embed
+    if extracted_text:
+        try:
+            from v1.app.rag.service import RAGService
+            rag_service = RAGService(session=db)
+            await rag_service.embed_and_chunk_inline_text(db, doc_id, extracted_text)
+        except Exception as e:
+            print(f"Failed to inline embed text: {e}")
+            
+    return {
+        "extracted_text": extracted_text,
+        "base64": base64_str
+    }
 
 @router.put("/{doc_id}")
 async def autosave_document(

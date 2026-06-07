@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { type Editor } from "@tiptap/react";
 import {
   Bold,
@@ -24,6 +24,7 @@ import {
   IndentDecrease,
   ChevronDown,
   RotateCcw,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +37,7 @@ import { cn } from "@/lib/utils";
 
 interface EditorToolbarProps {
   editor: Editor | null;
+  documentId: string;
 }
 
 const FONT_FAMILIES = [
@@ -48,8 +50,65 @@ const FONT_FAMILIES = [
 const FONT_SIZES = ["12px", "14px", "16px", "18px", "24px", "32px"];
 const LINE_HEIGHTS = ["1", "1.15", "normal", "1.5", "2", "2.5", "3"];
 
-export function EditorToolbar({ editor }: EditorToolbarProps) {
+export function EditorToolbar({ editor, documentId }: EditorToolbarProps) {
   const [, forceUpdate] = useState({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editor) return;
+
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Need to dynamically import getAuthToken or pass it down, but we can just import it since it's a client component.
+      // Wait, we can import getAuthToken from "@/lib/actions/authActions"
+      // Actually, let's just use fetch directly.
+      const { getAuthToken } = await import("@/lib/actions/authActions");
+      const token = await getAuthToken();
+
+      const { API_BASE_URL } = await import("@/lib/apiConfig");
+      const response = await fetch(`${API_BASE_URL}/documents/${documentId}/images/process`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to process image");
+      }
+
+      const data = await response.json();
+      
+      // Build the image node with extracted text as alt text
+      const attrs: Record<string, string> = { src: data.base64 };
+      if (data.extracted_text) {
+        attrs.alt = data.extracted_text.replace(/\n/g, ' ');
+      }
+
+      const nodes: any[] = [
+        {
+          type: 'image',
+          attrs
+        }
+      ];
+
+      // Insert image
+      editor.chain().focus().insertContent(nodes).run();
+    } catch (error) {
+      console.error("Error uploading image:", error);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   useEffect(() => {
     if (!editor) return;
@@ -78,7 +137,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         <div className="flex flex-wrap items-center gap-1">
           {/* Font Family */}
           <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex items-center justify-between whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 w-[110px]">
+            <DropdownMenuTrigger className="inline-flex items-center justify-between whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 w-27.5">
               <span className="truncate">
                 {FONT_FAMILIES.find(
                   (f) =>
@@ -126,7 +185,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
 
           {/* Font Size */}
           <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex items-center justify-between whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 w-[70px]">
+            <DropdownMenuTrigger className="inline-flex items-center justify-between whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 w-17.5">
               <span className="truncate">
                 {editor
                   .getAttributes("textStyle")
@@ -482,6 +541,29 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                 })()}
               </DropdownMenuContent>
             </DropdownMenu>
+          </div>
+
+          <div className="flex items-center gap-1 border-r pr-1 mr-1">
+            <input 
+              type="file" 
+              accept="image/*" 
+              className="hidden" 
+              ref={fileInputRef} 
+              onChange={handleImageUpload} 
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              title="Insert Image"
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              ) : (
+                <ImageIcon className="h-4 w-4" />
+              )}
+            </Button>
           </div>
 
           <div className="flex items-center gap-1">

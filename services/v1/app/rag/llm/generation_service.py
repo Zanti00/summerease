@@ -132,6 +132,7 @@ class GenerationService:
         models_to_try = [self._settings.GEMINI_TOOL_MODEL, self._settings.GEMINI_TOOL_MODEL_FALLBACK]
 
         for attempt, model_name in enumerate(models_to_try):
+            tokens_yielded = False
             model = genai.GenerativeModel(
                 model_name=model_name,
                 system_instruction=system_instruction,
@@ -148,7 +149,6 @@ class GenerationService:
                     )
                 )
 
-                tokens_yielded = False
                 async for chunk in response:
                     tokens_yielded = True
                     if not chunk.parts:

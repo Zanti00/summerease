@@ -132,12 +132,12 @@ class GenerateWithToolsRequest(BaseModel):
     document_ids: Optional[List[str]] = Field(default=None)
     document_content_html: Optional[str] = Field(
         default=None,
-        max_length=100_000,
+        max_length=5_000_000,
         description="Current HTML content of the open document for tool-calling context"
     )
     selected_text_html: Optional[str] = Field(
         default=None,
-        max_length=50_000,
+        max_length=5_000_000,
         description="Current HTML selection from the editor for targeted editing"
     )
 

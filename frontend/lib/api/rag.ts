@@ -104,7 +104,9 @@ export async function uploadRAGDocument(file: File): Promise<RAGDocument> {
 
   if (!res.ok) {
     const errData = await res.json().catch(() => ({}));
-    throw new Error(errData.detail || "Failed to upload document to RAG pipeline");
+    const detail = errData.detail;
+    const errMsg = Array.isArray(detail) ? detail.map(e => e.msg || JSON.stringify(e)).join(", ") : detail || "Failed to upload document to RAG pipeline";
+    throw new Error(errMsg);
   }
 
   return res.json();
@@ -170,7 +172,9 @@ export async function searchRAGDocuments(
 
   if (!res.ok) {
     const errData = await res.json().catch(() => ({}));
-    throw new Error(errData.detail || "Semantic search request failed");
+    const detail = errData.detail;
+    const errMsg = Array.isArray(detail) ? detail.map(e => e.msg || JSON.stringify(e)).join(", ") : detail || "Semantic search request failed";
+    throw new Error(errMsg);
   }
 
   return res.json();
@@ -230,7 +234,9 @@ export function streamRAGGeneration(
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        onError(errData.detail || "Generation request failed");
+        const detail = errData.detail;
+        const errMsg = Array.isArray(detail) ? detail.map((e: any) => e.msg || JSON.stringify(e)).join(", ") : detail || "Generation request failed";
+        onError(errMsg);
         return;
       }
 
@@ -324,7 +330,9 @@ export function streamRAGGenerationWithTools(
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        onError(errData.detail || "Generation request failed");
+        const detail = errData.detail;
+        const errMsg = Array.isArray(detail) ? detail.map((e: any) => e.msg || JSON.stringify(e)).join(", ") : detail || "Generation request failed";
+        onError(errMsg);
         return;
       }
 

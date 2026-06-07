@@ -10,6 +10,8 @@ import Underline from "@tiptap/extension-underline";
 import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
 import FontFamily from "@tiptap/extension-font-family";
+import Image from "@tiptap/extension-image";
+import { HiddenText } from "./extensions/HiddenText";
 
 import { FontSize } from "./extensions/FontSize";
 import { LineHeight } from "./extensions/LineHeight";
@@ -33,6 +35,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
+import { DOMSerializer } from "@tiptap/pm/model";
 
 interface RichTextEditorProps {
   documentId: string;
@@ -213,6 +216,13 @@ export function RichTextEditor({
       FontSize,
       LineHeight,
       Indent,
+      Image.configure({
+        allowBase64: true,
+        HTMLAttributes: {
+          class: "max-w-full h-auto rounded-md shadow-sm border",
+        },
+      }),
+      HiddenText,
     ],
     content: initialContent,
     editorProps: {
@@ -241,10 +251,15 @@ export function RichTextEditor({
     onSelectionUpdate: ({ editor }) => {
       const { setLastSelectedHtml, setLastSelectionRange } =
         useEditorStore.getState();
-      if (!editor.state.selection.empty) {
+      if (!editor.state.selection.empty || editor.isActive("image")) {
         const { from, to } = editor.state.selection;
-        const html = editor.state.doc.textBetween(from, to, "\n");
-        setLastSelectedHtml(html);
+        
+        // Generate HTML from the selection fragment
+        const fragment = editor.state.selection.content().content;
+        const element = document.createElement("div");
+        DOMSerializer.fromSchema(editor.state.schema).serializeFragment(fragment, { document }, element);
+        
+        setLastSelectedHtml(element.innerHTML);
         setLastSelectionRange({ from, to });
       } else {
         setLastSelectedHtml(null);
@@ -303,12 +318,19 @@ export function RichTextEditor({
     >
       {({ onClick: handleDeleteClick }) => (
         <div className="flex flex-col border rounded-md shadow-sm bg-card overflow-hidden">
-          <EditorToolbar editor={editor} />
+          <EditorToolbar editor={editor} documentId={documentId} />
           <div className="relative z-20">
             {editor && (
               <BubbleMenu
                 editor={editor}
                 className="flex items-center gap-2 p-1.5 rounded-xl border border-zinc-700 bg-zinc-900 shadow-xl overflow-hidden backdrop-blur-md z-100"
+                shouldShow={({ editor, state }) => {
+                  const { selection } = state;
+                  if (selection.empty) return false;
+                  if (editor.isActive("image")) return true;
+                  const textContent = state.doc.textBetween(selection.from, selection.to);
+                  return textContent.length > 0;
+                }}
               >
                 <form
                   onSubmit={handleBubbleSubmit}

@@ -418,3 +418,90 @@ class RAGService:
             doc.processing_completed_at = datetime.utcnow()
             await db.commit()
             raise e
+
+    async def embed_and_chunk_inline_text(self, db: AsyncSession, doc_id: str, text: str) -> None:
+        """Chunks and embeds a piece of inline text (like OCR from an uploaded image), appending to the document."""
+        stmt = select(Document).where(Document.id == uuid.UUID(doc_id))
+        result = await db.execute(stmt)
+        doc = result.scalar_one_or_none()
+        
+        if not doc:
+            logger.error(f"Inline embedding failed: Document {doc_id} not found.")
+            return
+
+        normalized = normalize_text(text)
+        if len(normalized) < 10:
+            return # Too short
+
+        chunker = RecursiveChunker(
+            max_tokens=self.settings.RAG_CHUNK_SIZE,
+            overlap_tokens=self.settings.RAG_CHUNK_OVERLAP
+        )
+        
+        doc_metadata = {
+            "document_id": str(doc.id),
+            "document_title": doc.title,
+            "file_type": doc.file_type
+        }
+        chunks = chunker.chunk(normalized, doc_metadata)
+        if not chunks:
+            return
+
+        # Fetch current max chunk_index
+        max_idx_stmt = select(func.max(DocumentChunk.chunk_index)).where(DocumentChunk.document_id == doc.id)
+        max_idx_res = await db.execute(max_idx_stmt)
+        current_max_idx = max_idx_res.scalar()
+        next_idx = (current_max_idx + 1) if current_max_idx is not None else 0
+
+        db_chunks = []
+        for c in chunks:
+            db_chunk = DocumentChunk(
+                document_id=doc.id,
+                chunk_index=next_idx,
+                chunk_content=c.content,
+                chunk_hash=c.hash,
+                token_count=c.token_count,
+                char_count=c.char_count,
+                chunk_metadata=c.metadata
+            )
+            db.add(db_chunk)
+            db_chunks.append(db_chunk)
+            next_idx += 1
+            
+        await db.commit()
+
+        # Update totals
+        doc.total_chunks = (doc.total_chunks or 0) + len(chunks)
+        doc.total_tokens = (doc.total_tokens or 0) + sum(c.token_count for c in chunks)
+        await db.commit()
+
+        for c in db_chunks:
+            await db.refresh(c)
+
+        # Initialize client
+        rate_limiter = EmbeddingRateLimiter(
+            requests_per_minute=self.settings.EMBEDDING_RPM_LIMIT,
+            requests_per_day=self.settings.EMBEDDING_RPD_LIMIT
+        )
+        emb_client = EmbeddingClient(
+            api_key=self.settings.GOOGLE_API_KEY,
+            model=self.settings.EMBEDDING_MODEL,
+            rate_limiter=rate_limiter,
+            dimensions=self.settings.EMBEDDING_DIMENSIONS
+        )
+
+        batch_contents = [chunk.chunk_content for chunk in db_chunks]
+        vectors = await emb_client.embed_batch(batch_contents)
+
+        for chunk, vector in zip(db_chunks, vectors):
+            db_emb = Embedding(
+                chunk_id=chunk.id,
+                embedding_vector=vector,
+                embedding_model=emb_client.model,
+                model_version="v1"
+            )
+            db.add(db_emb)
+        await db.commit()
+        
+        await self.cache.invalidate_owner_search_cache(str(doc.owner_id))
+        logger.info("rag.inline_ingestion.success", document_id=str(doc.id), new_chunks=len(chunks))

@@ -50,3 +50,5 @@ structlog>=24.1.0
 chardet>=5.2.0
 markdown>=3.6.0
 openai>=1.0.0
+pytesseract
+Pillow
