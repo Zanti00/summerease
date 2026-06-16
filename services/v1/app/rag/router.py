@@ -250,8 +250,13 @@ async def generate_answer(
     Each SSE event contains a JSON payload with a 'token' field.
     The stream ends with a 'data: [DONE]' sentinel.
     """
+    from v1.app.rag.llm.guardrails import check_for_prompt_injection
+    
     user_id = _get_user_id(current_user)
     settings = get_settings()
+
+    # Apply guardrails against prompt injection and identity probing
+    check_for_prompt_injection(request.query)
 
     # Initialize Ollama client
     ollama = OllamaClient(
@@ -313,8 +318,13 @@ async def generate_with_tools(
     """
     RAG-powered answer generation with tool calling support for document editing.
     """
+    from v1.app.rag.llm.guardrails import check_for_prompt_injection
+
     user_id = _get_user_id(current_user)
     settings = get_settings()
+
+    # Apply guardrails against prompt injection and identity probing
+    check_for_prompt_injection(request.query)
 
     ollama = OllamaClient(
         base_url=settings.OLLAMA_BASE_URL,

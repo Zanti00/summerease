@@ -104,10 +104,12 @@ class GenerationService:
         selected_html: str | None = None,
     ) -> AsyncIterator[dict]:
         """
-        Execute generation with tools and document HTML context using Google Gemini.
+        Execute generation with tools and document HTML context using Agnes AI with Gemini fallback.
         """
         import google.generativeai as genai
         from google.api_core.exceptions import ResourceExhausted
+        from openai import AsyncOpenAI
+        import json
         
         genai.configure(api_key=self._settings.GOOGLE_API_KEY)
         
@@ -127,77 +129,12 @@ class GenerationService:
         if selected_html:
             tools_subset = [t for t in AVAILABLE_TOOLS if t["function"]["name"] == "replace_selection"]
 
-        gemini_tools = get_gemini_tools(tools_subset)
-        
-        models_to_try = [self._settings.GEMINI_TOOL_MODEL, self._settings.GEMINI_TOOL_MODEL_FALLBACK]
+        agnes_failed = False
+        tokens_yielded = False
 
-        for attempt, model_name in enumerate(models_to_try):
-            tokens_yielded = False
-            model = genai.GenerativeModel(
-                model_name=model_name,
-                system_instruction=system_instruction,
-                tools=gemini_tools,
-            )
-
-            try:
-                response = await model.generate_content_async(
-                    user_query,
-                    stream=True,
-                    generation_config=genai.types.GenerationConfig(
-                        temperature=0.1,
-                        max_output_tokens=self._settings.LLM_TOOL_MAX_OUTPUT_TOKENS,
-                    )
-                )
-
-                async for chunk in response:
-                    tokens_yielded = True
-                    if not chunk.parts:
-                        continue
-                    part = chunk.parts[0]
-                    if part.function_call:
-                        # Map Gemini function_call back to expected dictionary format
-                        tool_call = {
-                            "function": {
-                                "name": part.function_call.name,
-                                "arguments": dict(part.function_call.args)
-                            }
-                        }
-                        result = process_tool_call(tool_call)
-                        if result:
-                            yield result
-                    elif part.text:
-                        yield {"type": "token", "content": part.text}
-                
-                # Success, no need to try the fallback model
-                return
-
-            except ResourceExhausted:
-                if tokens_yielded:
-                    logger.error("rag.generate_with_tools.quota_limit_mid_stream", model_name=model_name)
-                    raise
-                elif attempt < len(models_to_try) - 1:
-                    logger.warning(
-                        "rag.generate_with_tools.quota_limit_hit",
-                        failed_model=model_name,
-                        fallback_model=models_to_try[attempt + 1]
-                    )
-                    continue
-                else:
-                    logger.warning("rag.generate_with_tools.quota_limit_exhausted_all_models", model_name=model_name)
-                    break
-            except Exception as e:
-                logger.error("rag.generate_with_tools.error", error=str(e), model_name=model_name)
-                if not tokens_yielded and attempt == len(models_to_try) - 1:
-                    break
-                raise
-
-        # Fallback to Agnes AI
+        # Try Agnes AI first
         if self._settings.SAPIENS_API_KEY:
-            from openai import AsyncOpenAI
-            import json
-            
-            logger.info("rag.generate_with_tools.fallback_to_agnes")
-            
+            logger.info("rag.generate_with_tools.try_agnes")
             client = AsyncOpenAI(
                 api_key=self._settings.SAPIENS_API_KEY,
                 base_url=self._settings.SAPIENS_BASE_URL if self._settings.SAPIENS_BASE_URL else None,
@@ -237,6 +174,7 @@ class GenerationService:
                                 if tool_call_delta.function.arguments:
                                     tool_call_buffer[idx]["function"]["arguments"] += tool_call_delta.function.arguments
                     elif delta.content:
+                        tokens_yielded = True
                         yield {"type": "token", "content": delta.content}
 
                 # Process buffered tool calls
@@ -246,13 +184,84 @@ class GenerationService:
                             tool_call["function"]["arguments"] = json.loads(tool_call["function"]["arguments"])
                             result = process_tool_call(tool_call)
                             if result:
+                                tokens_yielded = True
                                 yield result
                         except json.JSONDecodeError:
-                            logger.error("rag.generate_with_tools.agnes_fallback.json_decode_error", args=tool_call["function"]["arguments"])
+                            logger.error("rag.generate_with_tools.agnes.json_decode_error", args=tool_call["function"]["arguments"])
                 return
             except Exception as e:
-                logger.error("rag.generate_with_tools.agnes_fallback_failed", error=str(e))
-                raise
+                logger.error("rag.generate_with_tools.agnes_failed", error=str(e))
+                agnes_failed = True
+                if tokens_yielded:
+                    raise
         else:
+            agnes_failed = True
+            logger.info("rag.generate_with_tools.agnes_not_configured")
+
+        # Fallback to Gemini if Agnes fails or is not configured
+        if agnes_failed:
+            logger.info("rag.generate_with_tools.fallback_to_gemini")
+            gemini_tools = get_gemini_tools(tools_subset)
+            models_to_try = [self._settings.GEMINI_TOOL_MODEL, self._settings.GEMINI_TOOL_MODEL_FALLBACK]
+
+            for attempt, model_name in enumerate(models_to_try):
+                tokens_yielded = False
+                model = genai.GenerativeModel(
+                    model_name=model_name,
+                    system_instruction=system_instruction,
+                    tools=gemini_tools,
+                )
+
+                try:
+                    response = await model.generate_content_async(
+                        user_query,
+                        stream=True,
+                        generation_config=genai.types.GenerationConfig(
+                            temperature=0.1,
+                            max_output_tokens=self._settings.LLM_TOOL_MAX_OUTPUT_TOKENS,
+                        )
+                    )
+
+                    async for chunk in response:
+                        tokens_yielded = True
+                        if not chunk.parts:
+                            continue
+                        part = chunk.parts[0]
+                        if part.function_call:
+                            # Map Gemini function_call back to expected dictionary format
+                            tool_call = {
+                                "function": {
+                                    "name": part.function_call.name,
+                                    "arguments": dict(part.function_call.args)
+                                }
+                            }
+                            result = process_tool_call(tool_call)
+                            if result:
+                                yield result
+                        elif part.text:
+                            yield {"type": "token", "content": part.text}
+                    
+                    return
+
+                except ResourceExhausted:
+                    if tokens_yielded:
+                        logger.error("rag.generate_with_tools.gemini.quota_limit_mid_stream", model_name=model_name)
+                        raise
+                    elif attempt < len(models_to_try) - 1:
+                        logger.warning(
+                            "rag.generate_with_tools.gemini.quota_limit_hit",
+                            failed_model=model_name,
+                            fallback_model=models_to_try[attempt + 1]
+                        )
+                        continue
+                    else:
+                        logger.warning("rag.generate_with_tools.gemini.quota_limit_exhausted_all_models", model_name=model_name)
+                        break
+                except Exception as e:
+                    logger.error("rag.generate_with_tools.gemini.error", error=str(e), model_name=model_name)
+                    if not tokens_yielded and attempt == len(models_to_try) - 1:
+                        break
+                    raise
+
             logger.error("rag.generate_with_tools.exhausted_and_no_fallback")
-            raise ResourceExhausted("Gemini quota exhausted and Sapiens fallback not configured.")
+            raise Exception("Agnes failed and Gemini quota exhausted/failed.")

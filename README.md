@@ -5,7 +5,7 @@
 [![Node](https://img.shields.io/badge/node-20+-green)](https://nodejs.org/)
 [![Docker](https://img.shields.io/badge/docker-ready-blue)](https://www.docker.com/)
 
-**SummerEase** is an AI-powered document summarization and plagiarism-checking platform with a polished Next.js web UI and a high-performance FastAPI backend. It utilizes Retrieval-Augmented Generation (RAG) powered by Google Gemini (with an Agnes AI fallback) and local Ollama models.
+**SummerEase** is an AI-powered document summarization platform with a polished Next.js web UI and a high-performance FastAPI backend. It utilizes Retrieval-Augmented Generation (RAG) powered by Google Gemini (with an Agnes AI fallback) and local Ollama models.
 
 This guide is written from the ground up to help you set up the entire project, whether you are running it natively on your machine or through Docker.
 
